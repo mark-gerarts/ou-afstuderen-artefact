@@ -1,0 +1,86 @@
+cabal-version: 2.0
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           ou-afstuderen-artefact
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/ou-afstuderen-artefact#readme>
+homepage:       https://github.com/githubuser/ou-afstuderen-artefact#readme
+bug-reports:    https://github.com/githubuser/ou-afstuderen-artefact/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2021 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/ou-afstuderen-artefact
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_ou_afstuderen_artefact
+  hs-source-dirs:
+      src
+  build-depends:
+      async
+    , base >=4.7 && <5
+    , directory
+    , http-types
+    , tophat
+    , wai
+    , wai-extra
+    , warp
+  mixins:
+      tophat (Prelude as TopHatPrelude)
+  default-language: Haskell2010
+
+executable ou-afstuderen-artefact-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_ou_afstuderen_artefact
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      async
+    , base >=4.7 && <5
+    , directory
+    , http-types
+    , ou-afstuderen-artefact
+    , tophat
+    , wai
+    , wai-extra
+    , warp
+  mixins:
+      tophat (Prelude as TopHatPrelude)
+  default-language: Haskell2010
+
+test-suite ou-afstuderen-artefact-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_ou_afstuderen_artefact
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      async
+    , base >=4.7 && <5
+    , directory
+    , http-types
+    , ou-afstuderen-artefact
+    , tophat
+    , wai
+    , wai-extra
+    , warp
+  mixins:
+      tophat (Prelude as TopHatPrelude)
+  default-language: Haskell2010
