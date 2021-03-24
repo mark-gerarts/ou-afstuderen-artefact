@@ -58,6 +58,9 @@ extra-deps:
 # Override default flag values for local packages and extra-deps
 # flags: {}
 
+ghc-options:
+  "$locals": -XOverloadedStrings
+
 # Extra package databases containing global packages
 # extra-package-dbs: []
 
@@ -78,10 +81,3 @@ extra-deps:
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
-
-nix:
-  packages:
-    - zlib
-    - stack
-    - cabal-install
-  add-gc-roots: true

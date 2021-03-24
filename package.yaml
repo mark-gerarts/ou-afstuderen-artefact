@@ -19,16 +19,14 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/githubuser/ou-afstuderen-artefact#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+- base-noprelude >= 4.7 && < 5
 - warp
 - wai
 - wai-extra
 - http-types
 - async
 - directory
-# TopHat has a Prelude module - we define it as a mixin for now.
-- name: tophat
-  mixin: (Prelude as TopHatPrelude)
+- tophat
 
 library:
   source-dirs: src
