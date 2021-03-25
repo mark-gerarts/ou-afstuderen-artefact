@@ -27,6 +27,8 @@ dependencies:
 - async
 - directory
 - tophat
+- containers
+- unordered-containers
 
 library:
   source-dirs: src

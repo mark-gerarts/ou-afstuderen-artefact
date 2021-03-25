@@ -5,7 +5,7 @@ with pkgs;
 let
 
   yesod-devel = writeScriptBin "yesod-devel" ''
-    yesod devel
+    ${haskellPackages.yesod-bin}/bin/yesod devel
   '';
 
   local-hoogle = writeScriptBin "local-hoogle" ''

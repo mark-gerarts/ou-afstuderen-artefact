@@ -32,9 +32,11 @@ library
   build-depends:
       async
     , base-noprelude >=4.7 && <5
+    , containers
     , directory
     , http-types
     , tophat
+    , unordered-containers
     , wai
     , wai-extra
     , warp
@@ -50,10 +52,12 @@ executable ou-afstuderen-artefact-exe
   build-depends:
       async
     , base-noprelude >=4.7 && <5
+    , containers
     , directory
     , http-types
     , ou-afstuderen-artefact
     , tophat
+    , unordered-containers
     , wai
     , wai-extra
     , warp
@@ -70,10 +74,12 @@ test-suite ou-afstuderen-artefact-test
   build-depends:
       async
     , base-noprelude >=4.7 && <5
+    , containers
     , directory
     , http-types
     , ou-afstuderen-artefact
     , tophat
+    , unordered-containers
     , wai
     , wai-extra
     , warp
