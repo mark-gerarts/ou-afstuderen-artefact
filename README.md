@@ -17,6 +17,8 @@ global flag.
 
 ## Dev setup
 
+### Building & running
+
 Run the following once:
 
 ```bash
@@ -36,3 +38,16 @@ Or alternatively with nix:
 ```bash
 $ nix-shell --run yesod-devel
 ```
+
+### Hoogle
+
+Run a local Hoogle server:
+
+```
+$ nix-shell --run local-hoogle
+```
+
+The local Hoogle server can be found at
+[http://localhost:8080](http://localhost:8080). Grab yourself a cup of coffee if
+it's the first time you run this. Also, the command needs to be run again in
+case of changes in code/dependencies.
