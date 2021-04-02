@@ -29,6 +29,7 @@ dependencies:
 - tophat
 - containers
 - unordered-containers
+- servant
 
 library:
   source-dirs: src

@@ -1,7 +1,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import "ou-afstuderen-artefact" Lib (develMain)
+import "ou-afstuderen-artefact" Server (develMain)
 import "tophat" Prelude
 
 main :: IO ()
