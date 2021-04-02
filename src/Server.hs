@@ -4,13 +4,10 @@ import Application (application)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Data.Maybe (fromJust)
-import Network.HTTP.Types (status200)
-import Network.Wai (Response, responseLBS)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import System.Directory (doesFileExist)
 import System.Environment (getEnv)
-import Task (Task, select, update, view, (<?>))
 
 port :: Int
 port = 3000
@@ -23,11 +20,11 @@ prodMain = do
 develMain :: IO ()
 develMain =
   race_ watchTermFile <| do
-    port <- getEnv "PORT"
+    innerPort <- getEnv "PORT"
     displayPort <- getEnv "DISPLAY_PORT"
-    putTextLn <| "Running in development mode on port " <> toText port
+    putTextLn <| "Running in development mode on port " <> toText innerPort
     putTextLn <| "But you should connect to port " <> toText displayPort
-    run ((toText >> scan >> fromJust) port) (logStdoutDev application)
+    run ((toText >> scan >> fromJust) innerPort) (logStdoutDev application)
 
 watchTermFile :: IO ()
 watchTermFile =

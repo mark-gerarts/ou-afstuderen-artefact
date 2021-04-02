@@ -1,30 +1,31 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeOperators #-}
+
 module Application (application) where
 
-import qualified Data.HashMap.Strict as HM
-import Network.HTTP.Types (status200)
-import Network.Wai (Response, responseLBS)
-import Task (Task, select, update, view)
+import Data.Aeson (KeyValue ((.=)), ToJSON (toJSON), object)
+import Servant (Application, Get, JSON, Server, serve, (:>))
 
-application :: p -> (Response -> t) -> t
-application _ respond =
-  respond
-    <| responseLBS status200 [("Content-Type", "text/plain")]
-    <| encodeUtf8
-    <| display (inc 2)
-  where
-    inc :: Int -> Task h Int
-    inc x =
-      view (x + 1)
+data Task a where
+  Update :: Text -> Task Text
 
-    dec :: Int -> Task h Int
-    dec x =
-      view (x - 1)
+-- Pair is for a later stage.
+-- Pair :: Task a -> Task a -> Task (a, a)
 
-    oneStep :: Task h Int
-    oneStep = do
-      x <- update 0
-      select
-        <| HM.fromList
-          [ "Increase" ~> inc x,
-            "Decrease" ~> dec x
-          ]
+instance ToJSON (Task a) where
+  toJSON (Update x) = object ["type" .= ("update" :: Text), "value" .= x]
+
+type TaskAPI = "current-task" :> Get '[JSON] (Task Text)
+
+currentTask :: Task Text
+currentTask = Update "Edit me!"
+
+server :: Server TaskAPI
+server = return currentTask
+
+userAPI :: Proxy TaskAPI
+userAPI = Proxy
+
+application :: Application
+application = serve userAPI server

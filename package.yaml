@@ -29,7 +29,8 @@ dependencies:
 - tophat
 - containers
 - unordered-containers
-- servant
+- servant-server
+- aeson
 
 library:
   source-dirs: src
