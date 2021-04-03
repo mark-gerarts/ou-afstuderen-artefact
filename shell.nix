@@ -29,6 +29,10 @@ let
     sh -c 'serve-ui & serve-backend'
   '';
 
+  css-build-dev = writeScriptBin "css-build-dev" ''
+    npm run css-build-dev --prefix=frontend
+  '';
+
   # @todo: stack prod build
   build-prod = writeScriptBin "build-prod" ''
     npm run build-prod --prefix=frontend
@@ -48,6 +52,7 @@ in mkShell {
     serve-ui
     serve-both
     build-prod
+    css-build-dev
 
     stack
     cabal-install

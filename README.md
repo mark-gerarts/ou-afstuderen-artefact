@@ -54,10 +54,18 @@ case of changes in code/dependencies.
 
 ### Frontend
 
+Compile the CSS just once - we don't intent to make much changes for now.
+
+```
+$ npm run css-build-dev --prefix=frontend
+$ # or
+$ nix-shell --run css-build-dev
+```
+
 Run the frontend with hot reload:
 
 ```
-nix-shell --run serve-ui
+$ nix-shell --run serve-ui
 ```
 
 For general dev flow it is easier to run both Halogen with hot reload and
@@ -65,7 +73,7 @@ yesod-devel for the server. One way is to open up 2 terminal windows, or
 alternatively:
 
 ```
-nix-shell --run serve-both
+$ nix-shell --run serve-both
 ```
 
 The API will be available at  http://localhost:3000 and the frontend at
@@ -76,7 +84,7 @@ http://localhost:3001 (which will open automatically).
 Run vscode as follows:
 
 ```
-nix-shell --run 'code .'
+$ nix-shell --run 'code .'
 ```
 
 Then set up a [multi-root
