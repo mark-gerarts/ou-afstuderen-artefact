@@ -41,6 +41,7 @@ library
     , tophat
     , unordered-containers
     , wai
+    , wai-app-static
     , wai-extra
     , warp
   default-language: Haskell2010
@@ -64,6 +65,7 @@ executable ou-afstuderen-artefact-exe
     , tophat
     , unordered-containers
     , wai
+    , wai-app-static
     , wai-extra
     , warp
   default-language: Haskell2010
@@ -88,6 +90,7 @@ test-suite ou-afstuderen-artefact-test
     , tophat
     , unordered-containers
     , wai
+    , wai-app-static
     , wai-extra
     , warp
   default-language: Haskell2010
