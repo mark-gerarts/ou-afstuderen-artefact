@@ -1,7 +1,7 @@
 module Main where
 
 import Prelude
-import App.TaskLoader (taskLoader)
+import Component.TaskLoader (taskLoader)
 import Data.Foldable (for_)
 import Effect (Effect)
 import Halogen.Aff as HA

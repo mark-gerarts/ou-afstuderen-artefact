@@ -1,4 +1,4 @@
-module App.TaskLoader (taskLoader) where
+module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getCurrentTask, interact)
