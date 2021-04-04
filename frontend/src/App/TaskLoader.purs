@@ -1,40 +1,30 @@
 module App.TaskLoader (taskLoader) where
 
 import Prelude
-import Affjax as AX
-import Affjax.ResponseFormat as AXRF
+import App.Client (getCurrentTask, interact)
+import App.Task (Input(..), Task(..), updateTask)
 import Component.HTML.Utils (css)
-import Data.Argonaut (class DecodeJson, decodeJson, (.:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
+import Web.Event.Event as Event
+import Web.Event.Internal.Types (Event)
 
 type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
     }
 
-type Id
-  = Int
-
-data Task
-  = Update Id String
-
-instance decodeJsonTask :: DecodeJson Task where
-  decodeJson json = do
-    obj <- decodeJson json
-    value <- obj .: "value"
-    id <- obj .: "id"
-    pure $ Update id value
-
-instance showTask :: Show Task where
-  show (Update id x) = "Update [" <> x <> "] [" <> show id <> "]"
-
 data Action
   = FetchCurrentTask
+  | UpdateValue String
+  | Interact Event
+  | LogState -- For debug purposes...
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
 taskLoader =
@@ -56,13 +46,29 @@ taskLoader =
 
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction FetchCurrentTask = do
-  r <- H.liftAff $ AX.get AXRF.json "http://localhost:3000/current-task"
-  case r of
-    Left err -> logShow $ AX.printError err
-    Right response -> case decodeJson response.body of
-      Left err -> logShow err
-      Right task -> H.modify_ \s -> s { currentTask = Just task }
+  t <- H.liftAff $ getCurrentTask
+  case t of
+    Left err -> logShow err
+    Right task -> H.modify_ \s -> s { currentTask = Just task }
   H.modify_ \s -> s { isLoading = false }
+
+handleAction LogState = H.get >>= logShow
+
+handleAction (Interact event) = do
+  H.liftEffect $ Event.preventDefault event
+  s <- H.get
+  case s.currentTask of
+    Nothing -> logShow "Error"
+    Just (Update id value) -> do
+      let
+        input = Input id value
+      r <- H.liftAff $ interact input
+      case r of
+        Left err -> logShow err
+        Right task -> H.modify_ \s -> s { currentTask = Just task }
+
+handleAction (UpdateValue x) = do
+  H.modify_ \s -> s { currentTask = (updateTask x) <$> s.currentTask }
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
@@ -81,4 +87,30 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask task = HH.p_ [ HH.text $ "Task received: " <> show task ]
+renderTask (Update id value) =
+  HH.div_
+    [ HH.h2 [ css "title" ] [ HH.text $ "Update Task [" <> show id <> "]" ]
+    , HH.form
+        [ HE.onSubmit Interact ]
+        [ HH.div [ css "field" ]
+            [ HH.label_ [ HH.text "Value" ]
+            , HH.div [ css "control" ]
+                [ HH.input
+                    [ css "input"
+                    , HP.value value
+                    , HE.onValueInput UpdateValue
+                    ]
+                ]
+            ]
+        , HH.div [ css "field is-grouped" ]
+            [ HH.div [ css "control" ]
+                [ HH.button [ css "button is-link" ] [ HH.text "Submit" ]
+                ]
+            , HH.div [ css "control" ]
+                [ HH.a
+                    [ css "button is-link is-light", HE.onClick \e -> LogState ]
+                    [ HH.text "Log state" ]
+                ]
+            ]
+        ]
+    ]
