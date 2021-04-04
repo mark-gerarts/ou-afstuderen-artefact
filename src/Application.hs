@@ -6,17 +6,25 @@ module Application (application) where
 
 import Data.Aeson (KeyValue ((.=)), ToJSON (toJSON), object)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
+import Network.Wai.Middleware.Cors (simpleCors)
 import Servant
 import WaiAppStatic.Types (unsafeToPiece)
 
+type Id = Int
+
 data Task a where
-  Update :: Text -> Task Text
+  Update :: Id -> Text -> Task Text
 
 -- Pair is for a later stage.
 -- Pair :: Task a -> Task a -> Task (a, a)
 
 instance ToJSON (Task a) where
-  toJSON (Update x) = object ["type" .= ("update" :: Text), "value" .= x]
+  toJSON (Update id x) =
+    object
+      [ "type" .= ("update" :: Text),
+        "value" .= x,
+        "id" .= id
+      ]
 
 type TaskAPI = "current-task" :> Get '[JSON] (Task Text)
 
@@ -25,7 +33,7 @@ type StaticAPI = Raw
 type API = TaskAPI :<|> StaticAPI
 
 currentTask :: Task Text
-currentTask = Update "Edit me!"
+currentTask = Update 1 "Edit me!"
 
 server :: Server API
 server = taskServer :<|> staticServer
@@ -46,4 +54,4 @@ apiProxy :: Proxy API
 apiProxy = Proxy
 
 application :: Application
-application = serve apiProxy server
+application = simpleCors <| serve apiProxy server

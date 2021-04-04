@@ -3,7 +3,8 @@
 with pkgs;
 
 let
-
+  # Fetch purescript from a specific commit because we want 14.x, and stable
+  # only has 13.x.
   pursPin = import (builtins.fetchGit {
       name = "purescript-unstable-pin";
       url = "https://github.com/NixOS/nixpkgs/";
@@ -22,7 +23,7 @@ let
   '';
 
   serve-ui = writeScriptBin "serve-ui" ''
-    npm run build --prefix=frontend && npm run serve --prefix=frontend
+    ${nodejs}/bin/npm run build --prefix=frontend && npm run serve --prefix=frontend
   '';
 
   serve-both = writeScriptBin "serve-both" ''
@@ -30,12 +31,12 @@ let
   '';
 
   css-build-dev = writeScriptBin "css-build-dev" ''
-    npm run css-build-dev --prefix=frontend
+    ${nodejs}/bin/npm run css-build-dev --prefix=frontend
   '';
 
   # @todo: stack prod build
   build-prod = writeScriptBin "build-prod" ''
-    npm run build-prod --prefix=frontend
+    ${nodejs}/bin/npm run build-prod --prefix=frontend
   '';
 
 in mkShell {
@@ -54,10 +55,11 @@ in mkShell {
     build-prod
     css-build-dev
 
+    # Backend
     stack
     cabal-install
 
-    ## Frontend
+    # Frontend
     pursPin.purescript
     spago
     nodejs

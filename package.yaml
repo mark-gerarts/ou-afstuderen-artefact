@@ -32,6 +32,7 @@ dependencies:
 - servant-server
 - aeson
 - wai-app-static
+- wai-cors
 
 library:
   source-dirs: src

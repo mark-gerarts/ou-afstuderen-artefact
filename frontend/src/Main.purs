@@ -1,7 +1,7 @@
 module Main where
 
 import Prelude
-import App.Button as Button
+import App.TaskLoader (taskLoader)
 import Data.Foldable (for_)
 import Effect (Effect)
 import Halogen.Aff as HA
@@ -13,4 +13,4 @@ main =
   HA.runHalogenAff do
     entryPoint <- HA.selectElement $ QuerySelector "#halogen-app"
     -- @todo: we ignore all errors by using for_
-    for_ entryPoint (runUI Button.component unit)
+    for_ entryPoint (runUI taskLoader unit)
