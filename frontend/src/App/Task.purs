@@ -1,7 +1,7 @@
 module App.Task where
 
 import Prelude
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, jsonEmptyObject, (.:), (:=), (~>))
 
 type Id
   = Int
@@ -30,6 +30,7 @@ instance encodeInput :: EncodeJson Input where
     "value" := value
       ~> "id"
       := id
+      ~> jsonEmptyObject
 
 updateTask :: String -> Task -> Task
 updateTask newValue (Update id value) = Update id newValue

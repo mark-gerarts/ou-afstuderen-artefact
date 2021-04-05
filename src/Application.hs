@@ -4,7 +4,7 @@
 
 module Application (application) where
 
-import Data.Aeson (KeyValue ((.=)), ToJSON (toJSON), object)
+import Data.Aeson
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
@@ -27,27 +27,38 @@ instance ToJSON (Task a) where
         "id" .= id
       ]
 
+data Input = Input Id Text
+
+instance FromJSON Input where
+  parseJSON =
+    withObject "Input" <| \obj -> do
+      id <- obj .: "id"
+      value <- obj .: "value"
+      return (Input id value)
+
 type TaskAPI =
   "current-task" :> Get '[JSON] (Task Text)
-    :<|> "interact" :> Post '[JSON] (Task Text)
+    :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task Text)
 
 type StaticAPI = Raw
 
 type API = TaskAPI :<|> StaticAPI
 
-currentTask :: Task Text
-currentTask = Update 1 "Edit me!"
+currentTask :: Handler (Task Text)
+currentTask = return <| Update 1 "Edit me!"
 
-interact :: Task Text
-interact = Update 1 "You've interacted!"
+interact :: Input -> Handler (Task Text)
+interact (Input id value) =
+  return
+    <| Update id ("Server received: \"" <> value <> "\"")
 
 server :: Server API
 server = taskServer :<|> staticServer
   where
     taskServer :: Server TaskAPI
     taskServer =
-      return currentTask
-        :<|> return interact
+      currentTask
+        :<|> interact
 
     staticServer :: Server StaticAPI
     staticServer =

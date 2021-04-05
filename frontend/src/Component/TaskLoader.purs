@@ -14,6 +14,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
+import Component.HTML.Bulma as Bulma
 
 type State
   = { isLoading :: Boolean
@@ -88,10 +89,9 @@ renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
 renderTask (Update id value) =
-  HH.div_
-    [ HH.h2 [ css "title" ] [ HH.text $ "Update Task [" <> show id <> "]" ]
-    , HH.form
-        [ HE.onSubmit Interact ]
+  Bulma.panel ("Update Task [" <> show id <> "]")
+    ( HH.form
+        [ HE.onSubmit Interact, css "control" ]
         [ HH.div [ css "field" ]
             [ HH.label_ [ HH.text "Value" ]
             , HH.div [ css "control" ]
@@ -113,4 +113,4 @@ renderTask (Update id value) =
                 ]
             ]
         ]
-    ]
+    )
