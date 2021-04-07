@@ -1,63 +1,34 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Application (application) where
 
-import Data.Aeson
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
 import Servant
+import Task (Input (..), Task (..))
 import WaiAppStatic.Types (unsafeToPiece)
 
-type Id = Int
-
-data Task a where
-  Update :: Id -> Text -> Task Text
-
--- Pair is for a later stage.
--- Pair :: Task a -> Task a -> Task (a, a)
-
-instance ToJSON (Task a) where
-  toJSON (Update id x) =
-    object
-      [ "type" .= ("update" :: Text),
-        "value" .= x,
-        "id" .= id
-      ]
-
-data Input = Input Id Text
-
-instance FromJSON Input where
-  parseJSON =
-    withObject "Input" <| \obj -> do
-      id <- obj .: "id"
-      value <- obj .: "value"
-      return (Input id value)
-
-type TaskAPI =
-  "current-task" :> Get '[JSON] (Task Text)
+type TaskAPI a =
+  "current-task" :> Get '[JSON] (Task a)
     :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task Text)
 
 type StaticAPI = Raw
 
-type API = TaskAPI :<|> StaticAPI
-
-currentTask :: Handler (Task Text)
-currentTask = return <| Update 1 "Edit me!"
+type API a = TaskAPI a :<|> StaticAPI
 
 interact :: Input -> Handler (Task Text)
 interact (Input id value) =
   return
     <| Update id ("Server received: \"" <> value <> "\"")
 
-server :: Server API
-server = taskServer :<|> staticServer
+server :: Task a -> Server (API a)
+server task = taskServer task :<|> staticServer
   where
-    taskServer :: Server TaskAPI
-    taskServer =
-      currentTask
+    taskServer :: Task a -> Server (TaskAPI a)
+    taskServer task' =
+      return task'
         :<|> interact
 
     staticServer :: Server StaticAPI
@@ -69,11 +40,21 @@ server = taskServer :<|> staticServer
           indexFallback = map unsafeToPiece ["index.html"]
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
 
-apiProxy :: Proxy API
-apiProxy = Proxy
+apiProxy :: Task a -> Proxy (API a)
+apiProxy _ = Proxy
 
 application :: Application
-application = corsPolicy <| serve apiProxy server
+application = corsPolicy <| serve (apiProxy task) (server task)
+  where
+    -- Task is now hardcoded here, but can serve as the input to Application in
+    -- a later stage.
+    task = intUpdate
+
+    textUpdate :: Task Text
+    textUpdate = Update 1 "Edit me!"
+
+    intUpdate :: Task Int
+    intUpdate = Update 1 123
 
 corsPolicy :: Middleware
 corsPolicy = cors (const <| Just policy)

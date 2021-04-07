@@ -26,6 +26,7 @@ library
   exposed-modules:
       Application
       Server
+      Task
   other-modules:
       Paths_ou_afstuderen_artefact
   hs-source-dirs:
