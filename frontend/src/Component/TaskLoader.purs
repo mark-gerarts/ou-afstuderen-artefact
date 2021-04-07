@@ -2,7 +2,8 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getCurrentTask, interact)
-import App.Task (Input(..), Task(..), updateTask)
+import App.Task (Input(..), Task(..), Value(..), updateTask)
+import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -14,7 +15,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
-import Component.HTML.Bulma as Bulma
 
 type State
   = { isLoading :: Boolean
@@ -60,13 +60,13 @@ handleAction (Interact event) = do
   s <- H.get
   case s.currentTask of
     Nothing -> logShow "Error"
-    Just (Update id value) -> do
+    Just (Update id (Value value _)) -> do
       let
         input = Input id value
       r <- H.liftAff $ interact input
       case r of
         Left err -> logShow err
-        Right task -> H.modify_ \s -> s { currentTask = Just task }
+        Right task -> H.modify_ \s' -> s' { currentTask = Just task }
 
 handleAction (UpdateValue x) = do
   H.modify_ \s -> s { currentTask = (updateTask x) <$> s.currentTask }
@@ -88,7 +88,7 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask (Update id value) =
+renderTask (Update id (Value value valueType)) =
   Bulma.panel ("Update Task [" <> show id <> "]")
     ( HH.form
         [ HE.onSubmit Interact, css "control" ]

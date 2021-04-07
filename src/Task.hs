@@ -16,9 +16,15 @@ instance ToJSON a => ToJSON (Task a) where
   toJSON (Update id x) =
     object
       [ "type" .= ("update" :: Text),
-        "value" .= x,
+        "value" .= value,
         "id" .= id
       ]
+    where
+      value =
+        object
+          [ "value" .= x,
+            "type" .= ("string" :: Text) -- todo
+          ]
 
 data Input = Input Id Text
 
