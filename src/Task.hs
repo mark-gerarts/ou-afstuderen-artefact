@@ -12,7 +12,7 @@ data Task a where
 -- Pair is for a later stage.
 -- Pair :: Task a -> Task a -> Task (a, a)
 
-instance ToJSON a => ToJSON (Task a) where
+instance (ToJSON a, Typeable a) => ToJSON (Task a) where
   toJSON (Update id x) =
     object
       [ "type" .= ("update" :: Text),
@@ -23,8 +23,11 @@ instance ToJSON a => ToJSON (Task a) where
       value =
         object
           [ "value" .= x,
-            "type" .= ("string" :: Text) -- todo
+            "type" .= showType x
           ]
+
+showType :: Typeable a => a -> Text
+showType x = display (typeOf x)
 
 data Input = Input Id Text
 

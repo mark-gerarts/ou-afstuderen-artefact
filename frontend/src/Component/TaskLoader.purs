@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getCurrentTask, interact)
-import App.Task (Input(..), Task(..), Value(..), updateTask)
+import App.Task (Input(..), Task(..), Value(..), ValueType(..), updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Either (Either(..))
@@ -66,7 +66,12 @@ handleAction (Interact event) = do
       r <- H.liftAff $ interact input
       case r of
         Left err -> logShow err
-        Right task -> H.modify_ \s' -> s' { currentTask = Just task }
+        Right task -> do
+          -- For some reason Halogen renders an empty input if we immediately
+          -- alter the state. By first setting the state to something else this
+          -- doesn't happen...
+          H.modify_ \s' -> s' { currentTask = Nothing }
+          H.modify_ \s' -> s' { currentTask = Just task }
 
 handleAction (UpdateValue x) = do
   H.modify_ \s -> s { currentTask = (updateTask x) <$> s.currentTask }
@@ -88,19 +93,14 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask (Update id (Value value valueType)) =
+renderTask (Update id value) =
   Bulma.panel ("Update Task [" <> show id <> "]")
     ( HH.form
         [ HE.onSubmit Interact, css "control" ]
         [ HH.div [ css "field" ]
             [ HH.label_ [ HH.text "Value" ]
             , HH.div [ css "control" ]
-                [ HH.input
-                    [ css "input"
-                    , HP.value value
-                    , HE.onValueInput UpdateValue
-                    ]
-                ]
+                [ renderInput value ]
             ]
         , HH.div [ css "field is-grouped" ]
             [ HH.div [ css "control" ]
@@ -114,3 +114,19 @@ renderTask (Update id (Value value valueType)) =
             ]
         ]
     )
+
+renderInput :: forall a. Value -> HH.HTML a Action
+renderInput (Value value String) =
+  HH.input
+    [ css "input"
+    , HP.value value
+    , HE.onValueInput UpdateValue
+    ]
+
+renderInput (Value value Int) =
+  HH.input
+    [ css "input"
+    , HP.value value
+    , HE.onValueInput UpdateValue
+    , HP.type_ HP.InputNumber
+    ]

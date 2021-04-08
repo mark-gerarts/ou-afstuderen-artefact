@@ -49,8 +49,8 @@ instance decodeJsonValueType :: DecodeJson ValueType where
     string <- decodeJson json
     let
       valueType = case string of
-        "int" -> Just Int
-        "string" -> Just String
+        "Int" -> Just Int
+        "Text" -> Just String
         _ -> Nothing
     note (TypeMismatch "ValueType") valueType
 
