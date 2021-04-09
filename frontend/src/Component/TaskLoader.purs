@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getCurrentTask, interact)
-import App.Task (Input(..), Task(..), Value(..), ValueType(..), updateTask)
+import App.Task (Id, Input(..), Task(..), Value(..), ValueType(..), updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Either (Either(..))
@@ -23,8 +23,8 @@ type State
 
 data Action
   = FetchCurrentTask
-  | UpdateValue String
-  | Interact Event
+  | UpdateValue Id String
+  | Interact Task Event
   | LogState -- For debug purposes...
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
@@ -55,26 +55,24 @@ handleAction FetchCurrentTask = do
 
 handleAction LogState = H.get >>= logShow
 
-handleAction (Interact event) = do
+handleAction (Interact task event) = do
   H.liftEffect $ Event.preventDefault event
   s <- H.get
-  case s.currentTask of
-    Nothing -> logShow "Error"
-    Just (Update id (Value value _)) -> do
-      let
-        input = Input id value
-      r <- H.liftAff $ interact input
+  case task of
+    Pair _ _ -> logShow "Error"
+    Update id (Value value _) -> do
+      r <- H.liftAff $ interact (Input id value)
       case r of
         Left err -> logShow err
-        Right task -> do
+        Right newTask -> do
           -- For some reason Halogen renders an empty input if we immediately
           -- alter the state. By first setting the state to something else this
           -- doesn't happen...
           H.modify_ \s' -> s' { currentTask = Nothing }
-          H.modify_ \s' -> s' { currentTask = Just task }
+          H.modify_ \s' -> s' { currentTask = Just newTask }
 
-handleAction (UpdateValue x) = do
-  H.modify_ \s -> s { currentTask = (updateTask x) <$> s.currentTask }
+handleAction (UpdateValue id x) = do
+  H.modify_ \s -> s { currentTask = (updateTask id x) <$> s.currentTask }
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
@@ -93,14 +91,14 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask (Update id value) =
+renderTask task@(Update id value) =
   Bulma.panel ("Update Task [" <> show id <> "]")
     ( HH.form
-        [ HE.onSubmit Interact, css "control" ]
+        [ HE.onSubmit \e -> Interact task e, css "control" ]
         [ HH.div [ css "field" ]
             [ HH.label_ [ HH.text "Value" ]
             , HH.div [ css "control" ]
-                [ renderInput value ]
+                [ renderInput id value ]
             ]
         , HH.div [ css "field is-grouped" ]
             [ HH.div [ css "control" ]
@@ -115,18 +113,25 @@ renderTask (Update id value) =
         ]
     )
 
-renderInput :: forall a. Value -> HH.HTML a Action
-renderInput (Value value String) =
-  HH.input
-    [ css "input"
-    , HP.value value
-    , HE.onValueInput UpdateValue
+renderTask (Pair t1 t2) =
+  HH.div
+    [ css "columns" ]
+    [ HH.div [ css "column" ] [ renderTask t1 ]
+    , HH.div [ css "column" ] [ renderTask t2 ]
     ]
 
-renderInput (Value value Int) =
+renderInput :: forall a. Id -> Value -> HH.HTML a Action
+renderInput id (Value value String) =
   HH.input
     [ css "input"
     , HP.value value
-    , HE.onValueInput UpdateValue
+    , HE.onValueInput \s -> UpdateValue id s
+    ]
+
+renderInput id (Value value Int) =
+  HH.input
+    [ css "input"
+    , HP.value value
+    , HE.onValueInput \s -> UpdateValue id s
     , HP.type_ HP.InputNumber
     ]

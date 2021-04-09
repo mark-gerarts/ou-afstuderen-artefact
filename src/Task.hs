@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 
 module Task (Task (..), Input (..)) where
@@ -6,11 +7,15 @@ import Data.Aeson
 
 type Id = Int
 
-data Task a where
-  Update :: Id -> a -> Task a
+type TaskValue a =
+  ( ToJSON a, -- To transfer the value over the wire
+    Typeable a, -- To deduce the type of the value
+    Scan a -- To read the value back
+  )
 
--- Pair is for a later stage.
--- Pair :: Task a -> Task a -> Task (a, a)
+data Task a where
+  Update :: TaskValue a => Id -> a -> Task a
+  Pair :: (TaskValue a, TaskValue b) => Task a -> Task b -> Task (a, b)
 
 instance (ToJSON a, Typeable a) => ToJSON (Task a) where
   toJSON (Update id x) =
@@ -25,11 +30,18 @@ instance (ToJSON a, Typeable a) => ToJSON (Task a) where
           [ "value" .= x,
             "type" .= showType x
           ]
+  toJSON (Pair a b) =
+    object
+      [ "type" .= ("pair" :: Text),
+        "a" .= toJSON a,
+        "b" .= toJSON b
+      ]
 
 showType :: Typeable a => a -> Text
 showType x = display (typeOf x)
 
-data Input = Input Id Text
+data Input where
+  Input :: Id -> Text -> Input
 
 instance FromJSON Input where
   parseJSON =

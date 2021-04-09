@@ -3,7 +3,7 @@ module App.Task where
 import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, JsonDecodeError(..), decodeJson, jsonEmptyObject, (.:), (:=), (~>))
-import Data.Either (Either, note)
+import Data.Either (Either(..), note)
 import Data.Maybe (Maybe(..))
 import Foreign.Object (Object)
 
@@ -56,16 +56,27 @@ instance decodeJsonValueType :: DecodeJson ValueType where
 
 data Task
   = Update Id Value
+  | Pair Task Task
 
 instance decodeJsonTask :: DecodeJson Task where
   decodeJson json = do
     obj <- decodeJson json
-    value <- obj .: "value"
-    id <- obj .: "id"
-    pure $ Update id value
+    taskType <- obj .: "type"
+    case taskType of
+      "update" -> do
+        value <- obj .: "value"
+        id <- obj .: "id"
+        pure $ Update id value
+      "pair" -> do
+        --aEnc <- obj .: "a"
+        a <- obj .: "a" >>= decodeJson
+        b <- obj .: "b" >>= decodeJson
+        pure $ Pair a b
+      _ -> Left (UnexpectedValue json)
 
 instance showTask :: Show Task where
   show (Update id x) = "Update [" <> show x <> "] [" <> show id <> "]"
+  show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
 
 data Input
   = Input Id String
@@ -80,5 +91,9 @@ instance encodeInput :: EncodeJson Input where
       := id
       ~> jsonEmptyObject
 
-updateTask :: String -> Task -> Task
-updateTask newValue (Update id (Value oldValue t)) = Update id (Value newValue t)
+updateTask :: Id -> String -> Task -> Task
+updateTask id newValue task@(Update taskId (Value oldValue t))
+  | id == taskId = Update id (Value newValue t)
+  | otherwise = task
+
+updateTask id newValue (Pair t1 t2) = Pair (updateTask id newValue t1) (updateTask id newValue t2)
