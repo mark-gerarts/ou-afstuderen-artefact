@@ -2,17 +2,19 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getCurrentTask, interact)
-import App.Task (Id, Input(..), Task(..), Value(..), ValueType(..), updateTask)
+import App.Task (Id, Input(..), Task(..), Value(..), updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Int (fromString)
+import Data.Maybe (Maybe(..), fromJust)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Partial.Unsafe (unsafePartial)
 import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
 
@@ -23,7 +25,7 @@ type State
 
 data Action
   = FetchCurrentTask
-  | UpdateValue Id String
+  | UpdateValue Id Value
   | Interact Task Event
   | LogState -- For debug purposes...
 
@@ -60,7 +62,7 @@ handleAction (Interact task event) = do
   s <- H.get
   case task of
     Pair _ _ -> logShow "Error"
-    Update id (Value value _) -> do
+    Update id value -> do
       r <- H.liftAff $ interact (Input id value)
       case r of
         Left err -> logShow err
@@ -121,35 +123,29 @@ renderTask (Pair t1 t2) =
     ]
 
 renderInput :: forall a. Id -> Value -> HH.HTML a Action
-renderInput id (Value value String) =
+renderInput id (String value) =
   HH.input
     [ css "input"
     , HP.value value
-    , HE.onValueInput \s -> UpdateValue id s
+    , HE.onValueInput \s -> UpdateValue id (Int $ unsafePartial $ fromJust $ fromString s)
     ]
 
-renderInput id (Value value Int) =
+renderInput id (Int value) =
   HH.input
     [ css "input"
-    , HP.value value
-    , HE.onValueInput \s -> UpdateValue id s
+    , HP.value $ show value
+    , HE.onValueInput \s -> UpdateValue id (String s)
     , HP.type_ HP.InputNumber
     ]
 
-renderInput id (Value value Boolean) =
+renderInput id (Boolean value) =
   HH.label
     [ css "checkbox" ]
     [ HH.input
         [ css "checkbox"
-        , HP.checked $ value == "True"
+        , HP.checked value
         , HP.type_ HP.InputCheckbox
-        , HE.onChange \e -> UpdateValue id (toggle value)
+        , HE.onChange \e -> UpdateValue id (Boolean (not value))
         ]
     , HH.text "Enabled"
     ]
-  where
-  toggle "True" = "False"
-
-  toggle "False" = "True"
-
-  toggle x = x

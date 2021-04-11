@@ -1,16 +1,17 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Application (application) where
 
+import Data.Aeson (FromJSON (parseJSON), Value)
+import Data.Aeson.Types (parseMaybe)
 import Data.Maybe (fromJust)
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
 import Servant
-import Task (Input (..), Task (..))
+import Task (Input (..), Task (..), TaskValue)
 import WaiAppStatic.Types (unsafeToPiece)
 
 type TaskAPI a =
@@ -22,19 +23,14 @@ type StaticAPI = Raw
 type API a = TaskAPI a :<|> StaticAPI
 
 interact :: Input -> Task a -> Task a
-interact (Input id value) task@(Update taskId taskValue)
-  | id == taskId = Update (taskId + 3) (fromText (typeOf taskValue) value)
+interact (Input id value) task@(Update taskId _)
+  | id == taskId = Update (taskId + 3) (fromJSONValue' value)
   | otherwise = task
 interact input (Pair a b) = Pair (interact input a) (interact input b)
 
--- | This is a *very* hacky way to handle input for now. Everything is sent to
--- us as a string, we just attempt to cast it to what we need. It gets event
--- uglier because scanning a Text does not work out of the box...
-fromText :: (Scan a) => TypeRep a -> Text -> a
-fromText tr x =
-  case testEquality tr (typeRep @Text) of
-    Just Refl -> (scan >> fromJust) ("\"" <> x <> "\"")
-    Nothing -> (scan >> fromJust) x
+-- No error handling for now, a wrong input type results in a runtime error.
+fromJSONValue' :: TaskValue a => Value -> a
+fromJSONValue' = fromJust << parseMaybe parseJSON
 
 server :: Task a -> Server (API a)
 server task = taskServer task :<|> staticServer
