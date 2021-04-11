@@ -28,21 +28,8 @@ instance decodeJsonValue :: DecodeJson Value where
       pure $ show int
 
     fromBool obj x = do
-      bool :: Boolean <- obj .: x
-      pure $ show bool
-
-decodeValue :: ValueType -> Object Json -> Either JsonDecodeError String
-decodeValue Int obj = do
-  value :: Int <- obj .: "value"
-  pure $ show value
-
-decodeValue String obj = do
-  value <- obj .: "value"
-  pure value
-
-decodeValue Boolean obj = do
-  value :: Boolean <- obj .: "value"
-  pure $ show value
+      bool <- obj .: x
+      pure $ if bool then "True" else "False"
 
 data ValueType
   = Int

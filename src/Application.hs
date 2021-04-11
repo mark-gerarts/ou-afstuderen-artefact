@@ -23,7 +23,7 @@ type API a = TaskAPI a :<|> StaticAPI
 
 interact :: Input -> Task a -> Task a
 interact (Input id value) task@(Update taskId taskValue)
-  | id == taskId = Update taskId (fromText (typeOf taskValue) value)
+  | id == taskId = Update (taskId + 3) (fromText (typeOf taskValue) value)
   | otherwise = task
 interact input (Pair a b) = Pair (interact input a) (interact input b)
 
