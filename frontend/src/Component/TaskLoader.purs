@@ -135,3 +135,21 @@ renderInput id (Value value Int) =
     , HE.onValueInput \s -> UpdateValue id s
     , HP.type_ HP.InputNumber
     ]
+
+renderInput id (Value value Boolean) =
+  HH.label
+    [ css "checkbox" ]
+    [ HH.input
+        [ css "checkbox"
+        , HP.checked $ value == "true"
+        , HP.type_ HP.InputCheckbox
+        , HE.onChange \e -> UpdateValue id (toggle value)
+        ]
+    , HH.text "Enabled"
+    ]
+  where
+  toggle "true" = "false"
+
+  toggle "false" = "true"
+
+  toggle x = x

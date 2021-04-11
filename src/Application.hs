@@ -73,11 +73,17 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
-currentTask :: Task (Text, Int)
-currentTask = Pair textUpdate intUpdate
+currentTask :: Task (Text, (Int, Bool))
+currentTask = Pair textUpdate rightPair
   where
     textUpdate :: Task Text
     textUpdate = Update 1 "Edit me!!"
 
     intUpdate :: Task Int
     intUpdate = Update 2 123
+
+    boolUpdate :: Task Bool
+    boolUpdate = Update 3 True
+
+    rightPair :: Task (Int, Bool)
+    rightPair = Pair intUpdate boolUpdate

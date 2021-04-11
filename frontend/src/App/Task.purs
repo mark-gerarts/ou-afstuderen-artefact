@@ -19,13 +19,17 @@ instance showValue :: Show Value where
 instance decodeJsonValue :: DecodeJson Value where
   decodeJson json = do
     obj <- decodeJson json
-    value <- (obj .: "value" <|> fromInt obj "value")
+    value <- (obj .: "value" <|> fromInt obj "value" <|> fromBool obj "value")
     valueType <- obj .: "type"
     pure $ Value value valueType
     where
     fromInt obj x = do
       int :: Int <- obj .: x
       pure $ show int
+
+    fromBool obj x = do
+      bool :: Boolean <- obj .: x
+      pure $ show bool
 
 decodeValue :: ValueType -> Object Json -> Either JsonDecodeError String
 decodeValue Int obj = do
@@ -36,13 +40,19 @@ decodeValue String obj = do
   value <- obj .: "value"
   pure value
 
+decodeValue Boolean obj = do
+  value :: Boolean <- obj .: "value"
+  pure $ show value
+
 data ValueType
   = Int
   | String
+  | Boolean
 
 instance showValueType :: Show ValueType where
   show Int = "Int"
   show String = "String"
+  show Boolean = "Bool"
 
 instance decodeJsonValueType :: DecodeJson ValueType where
   decodeJson json = do
@@ -51,6 +61,7 @@ instance decodeJsonValueType :: DecodeJson ValueType where
       valueType = case string of
         "Int" -> Just Int
         "Text" -> Just String
+        "Bool" -> Just Boolean
         _ -> Nothing
     note (TypeMismatch "ValueType") valueType
 
