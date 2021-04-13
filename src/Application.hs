@@ -15,7 +15,7 @@ import Task (Input (..), Task (..), TaskValue)
 import WaiAppStatic.Types (unsafeToPiece)
 
 type TaskAPI a =
-  "current-task" :> Get '[JSON] (Task a)
+  "initial-task" :> Get '[JSON] (Task a)
     :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task a)
 
 type StaticAPI = Raw
@@ -57,7 +57,7 @@ application = corsPolicy <| serve (apiProxy task) (server task)
   where
     -- Task is now hardcoded here, but can serve as the input to Application in
     -- a later stage.
-    task = currentTask
+    task = initialTask
 
 corsPolicy :: Middleware
 corsPolicy = cors (const <| Just policy)
@@ -69,8 +69,8 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
-currentTask :: Task (Text, (Int, Bool))
-currentTask = Pair textUpdate rightPair
+initialTask :: Task (Text, (Int, Bool))
+initialTask = Pair textUpdate rightPair
   where
     textUpdate :: Task Text
     textUpdate = Update 1 "Edit me!!"

@@ -1,4 +1,4 @@
-module App.Client (ApiError, getCurrentTask, interact) where
+module App.Client (ApiError, getInitialTask, interact) where
 
 import Prelude
 import Affjax as AX
@@ -24,9 +24,9 @@ baseUri = "http://localhost:3000/"
 endpoint :: String -> String
 endpoint s = baseUri <> s
 
-getCurrentTask :: Aff (Either ApiError Task)
-getCurrentTask = do
-  r <- AX.get AXRF.json $ endpoint "current-task"
+getInitialTask :: Aff (Either ApiError Task)
+getInitialTask = do
+  r <- AX.get AXRF.json $ endpoint "initial-task"
   case r of
     Left err -> pure $ Left (RequestError err)
     Right response -> case decodeJson response.body of

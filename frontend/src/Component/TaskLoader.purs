@@ -1,7 +1,7 @@
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
-import App.Client (getCurrentTask, interact)
+import App.Client (getInitialTask, interact)
 import App.Task (Id, Input(..), Task(..), Value(..), updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
@@ -24,7 +24,7 @@ type State
     }
 
 data Action
-  = FetchCurrentTask
+  = FetchInitialTask
   | UpdateValue Id Value
   | Interact Task Event
   | LogState -- For debug purposes...
@@ -38,7 +38,7 @@ taskLoader =
         H.mkEval
           $ H.defaultEval
               { handleAction = handleAction
-              , initialize = Just FetchCurrentTask
+              , initialize = Just FetchInitialTask
               }
     }
   where
@@ -48,8 +48,8 @@ taskLoader =
     }
 
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
-handleAction FetchCurrentTask = do
-  t <- H.liftAff $ getCurrentTask
+handleAction FetchInitialTask = do
+  t <- H.liftAff $ getInitialTask
   case t of
     Left err -> logShow err
     Right task -> H.modify_ \s -> s { currentTask = Just task }
