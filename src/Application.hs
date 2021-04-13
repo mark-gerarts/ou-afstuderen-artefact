@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Application (application) where
+module Application (application, initialTask, State (..)) where
 
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (parseMaybe)
@@ -14,6 +14,10 @@ import Servant
 import Task (Input (..), Task (..), TaskValue)
 import WaiAppStatic.Types (unsafeToPiece)
 
+data State a = State
+  { currentTask :: TVar (Task a)
+  }
+
 type TaskAPI a =
   "initial-task" :> Get '[JSON] (Task a)
     :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task a)
@@ -21,6 +25,8 @@ type TaskAPI a =
 type StaticAPI = Raw
 
 type API a = TaskAPI a :<|> StaticAPI
+
+type AppM a = ReaderT (State a) Handler
 
 interact :: Input -> Task a -> Task a
 interact (Input id value) task@(Update taskId _)
@@ -32,15 +38,29 @@ interact input (Pair a b) = Pair (interact input a) (interact input b)
 fromJSONValue' :: TaskValue a => Value -> a
 fromJSONValue' = fromJust << parseMaybe parseJSON
 
-server :: Task a -> Server (API a)
-server task = taskServer task :<|> staticServer
+server :: State a -> ServerT (API a) (AppM a)
+server _ = taskServer :<|> staticServer
   where
-    taskServer :: Task a -> Server (TaskAPI a)
-    taskServer task' =
-      return task'
-        :<|> (\input -> return <| interact input task')
+    taskServer :: ServerT (TaskAPI a) (AppM a)
+    taskServer =
+      initialTaskHandler
+        :<|> interactHandler
 
-    staticServer :: Server StaticAPI
+    initialTaskHandler :: AppM a (Task a)
+    initialTaskHandler = do
+      State {currentTask = t} <- ask
+      liftIO <| atomically <| readTVar t
+
+    interactHandler :: Input -> AppM a (Task a)
+    interactHandler input = do
+      State {currentTask = t} <- ask
+      liftIO <| atomically <| do
+        t' <- readTVar t
+        let newTask = interact input t'
+        writeTVar t newTask
+        return newTask
+
+    staticServer :: ServerT StaticAPI (AppM a)
     staticServer =
       -- serveDirectoryWebAbb does not automatically use index.html when
       -- visiting /, so we use the default webApp settings, but override the
@@ -49,15 +69,16 @@ server task = taskServer task :<|> staticServer
           indexFallback = map unsafeToPiece ["index.html"]
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
 
-apiProxy :: Task a -> Proxy (API a)
+apiProxy :: State a -> Proxy (API a)
 apiProxy _ = Proxy
 
-application :: Application
-application = corsPolicy <| serve (apiProxy task) (server task)
+application :: State a -> Application
+application s =
+  corsPolicy
+    <| serve (apiProxy s)
+    <| hoistServer (apiProxy s) (nt s) (server s)
   where
-    -- Task is now hardcoded here, but can serve as the input to Application in
-    -- a later stage.
-    task = initialTask
+    nt s' x = runReaderT x s'
 
 corsPolicy :: Middleware
 corsPolicy = cors (const <| Just policy)
@@ -73,7 +94,7 @@ initialTask :: Task (Text, (Int, Bool))
 initialTask = Pair textUpdate rightPair
   where
     textUpdate :: Task Text
-    textUpdate = Update 1 "Edit me!!"
+    textUpdate = Update 1 "Edit me!"
 
     intUpdate :: Task Int
     intUpdate = Update 2 123

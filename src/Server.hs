@@ -1,9 +1,10 @@
 module Server (prodMain, develMain) where
 
-import Application (application)
+import Application (State (..), application, initialTask)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Data.Maybe (fromJust)
+import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import System.Directory (doesFileExist)
@@ -15,7 +16,8 @@ port = 3000
 prodMain :: IO ()
 prodMain = do
   putStrLn <| "Starting webserver at http://localhost:3000"
-  run port application
+  app <- initApp
+  run port app
 
 develMain :: IO ()
 develMain =
@@ -24,7 +26,17 @@ develMain =
     displayPort <- getEnv "DISPLAY_PORT"
     putTextLn <| "Running in development mode on port " <> toText innerPort
     putTextLn <| "But you should connect to port " <> toText displayPort
-    run ((toText >> scan >> fromJust) innerPort) (logStdoutDev application)
+    app <- initApp
+    run ((toText >> scan >> fromJust) innerPort) (logStdoutDev app)
+
+initApp :: IO Application
+initApp = do
+  -- Task is now hardcoded here, but can serve as the input to Application in
+  -- a later stage.
+  let task = initialTask
+  currentTaskTVar <- atomically <| newTVar task
+  let app = application (State {currentTask = currentTaskTVar})
+  return app
 
 watchTermFile :: IO ()
 watchTermFile =
