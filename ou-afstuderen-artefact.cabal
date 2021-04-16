@@ -25,8 +25,8 @@ source-repository head
 library
   exposed-modules:
       Application
+      Communication
       Server
-      Task
   other-modules:
       Paths_ou_afstuderen_artefact
   hs-source-dirs:

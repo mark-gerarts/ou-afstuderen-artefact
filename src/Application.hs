@@ -4,63 +4,66 @@
 
 module Application (application, initialTask, State (..)) where
 
-import Data.Aeson (FromJSON (parseJSON), Value)
+import Communication (Envelope (..), Input (..))
+import Data.Aeson (FromJSON (parseJSON), ToJSON, Value)
 import Data.Aeson.Types (parseMaybe)
 import Data.Maybe (fromJust)
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
 import Servant
-import Task (Input (..), Task (..), TaskValue)
+import Task (Task, update)
+import Task.Run (interact)
 import WaiAppStatic.Types (unsafeToPiece)
 
-data State a = State
-  { currentTask :: TVar (Task a)
+data State h t = State
+  { currentTask :: TVar (Task h t)
   }
 
-type TaskAPI a =
-  "initial-task" :> Get '[JSON] (Task a)
-    :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task a)
+type TaskAPI =
+  "initial-task" :> Get '[JSON] Envelope
+    :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] Envelope
 
 type StaticAPI = Raw
 
-type API a = TaskAPI a :<|> StaticAPI
+type API = TaskAPI :<|> StaticAPI
 
-type AppM a = ReaderT (State a) Handler
-
-interact :: Input -> Task a -> Task a
-interact (Input id value) task@(Update taskId _)
-  | id == taskId = Update (taskId + 3) (fromJSONValue' value)
-  | otherwise = task
-interact input (Pair a b) = Pair (interact input a) (interact input b)
+type AppM h t = ReaderT (State h t) Handler
 
 -- No error handling for now, a wrong input type results in a runtime error.
-fromJSONValue' :: TaskValue a => Value -> a
-fromJSONValue' = fromJust << parseMaybe parseJSON
+--fromJSONValue' :: TaskValue a => Value -> a
+--fromJSONValue' = fromJust << parseMaybe parseJSON
 
-server :: State a -> ServerT (API a) (AppM a)
+-- We define this method for now until everything else compiles - then we can
+-- see how we are actually going to use TopHat's interact.
+interact' :: Input -> Task h a -> Task h a
+interact' = undefined
+
+server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
   where
-    taskServer :: ServerT (TaskAPI a) (AppM a)
-    taskServer =
+    taskServer :: ToJSON t => ServerT TaskAPI (AppM h t)
+    taskServer = do
       initialTaskHandler
         :<|> interactHandler
 
-    initialTaskHandler :: AppM a (Task a)
+    initialTaskHandler :: ToJSON t => AppM h t Envelope
     initialTaskHandler = do
       State {currentTask = t} <- ask
-      liftIO <| atomically <| readTVar t
+      liftIO <| do
+        t' <- atomically <| readTVar t
+        return (Envelope t')
 
-    interactHandler :: Input -> AppM a (Task a)
+    interactHandler :: ToJSON t => Input -> AppM h t Envelope
     interactHandler input = do
       State {currentTask = t} <- ask
       liftIO <| atomically <| do
         t' <- readTVar t
-        let newTask = interact input t'
+        let newTask = interact' input t'
         writeTVar t newTask
-        return newTask
+        return (Envelope newTask)
 
-    staticServer :: ServerT StaticAPI (AppM a)
+    staticServer :: ServerT StaticAPI (AppM h t)
     staticServer =
       -- serveDirectoryWebAbb does not automatically use index.html when
       -- visiting /, so we use the default webApp settings, but override the
@@ -69,10 +72,10 @@ server _ = taskServer :<|> staticServer
           indexFallback = map unsafeToPiece ["index.html"]
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
 
-apiProxy :: State a -> Proxy (API a)
+apiProxy :: State h t -> Proxy API
 apiProxy _ = Proxy
 
-application :: State a -> Application
+application :: ToJSON t => State h t -> Application
 application s =
   corsPolicy
     <| serve (apiProxy s)
@@ -90,17 +93,5 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
-initialTask :: Task (Text, (Int, Bool))
-initialTask = Pair textUpdate rightPair
-  where
-    textUpdate :: Task Text
-    textUpdate = Update 1 "Edit me!"
-
-    intUpdate :: Task Int
-    intUpdate = Update 2 123
-
-    boolUpdate :: Task Bool
-    boolUpdate = Update 3 True
-
-    rightPair :: Task (Int, Bool)
-    rightPair = Pair intUpdate boolUpdate
+initialTask :: Task h Int
+initialTask = update 42
