@@ -2,18 +2,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 
-module Communication (Input (..), Envelope (..)) where
+module Communication (JsonTask (..), JsonInput (..)) where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser)
 import Task
+import Task.Input (Concrete (..), Input (..))
 
 -- We wrap the Task in a new datatype and use regular functions to encode them
 -- to JSON to prevent orphaned instances.
-data Envelope where -- @todo: find a better name for this.
-  Envelope :: ToJSON t => Task h t -> Envelope
+data JsonTask where -- @todo: find a better name for this.
+  JsonTask :: ToJSON t => Task h t -> JsonTask
 
-instance ToJSON Envelope where
-  toJSON (Envelope task) = taskToJSON task
+instance ToJSON JsonTask where
+  toJSON (JsonTask task) = taskToJSON task
 
 taskToJSON :: Task h t -> Value
 taskToJSON (Edit name editor) =
@@ -47,14 +49,13 @@ editorToJSON (Update t) =
     ]
 editorToJSON _ = undefined
 
-type Id = Int
+data JsonInput where
+  JsonInput :: Input Concrete -> JsonInput
 
-data Input where
-  Input :: Id -> Value -> Input
-
-instance FromJSON Input where
+-- @todo: hardcoded Int for now
+instance FromJSON JsonInput where
   parseJSON =
     withObject "Input" <| \obj -> do
-      id <- obj .: "id"
+      name <- obj .: "name"
       value <- obj .: "value"
-      pure <| Input id value
+      pure (JsonInput (Insert name (Concrete (value :: Int))))

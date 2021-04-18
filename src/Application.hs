@@ -1,43 +1,39 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Application (application, initialTask, State (..)) where
 
-import Communication (Envelope (..), Input (..))
-import Data.Aeson (FromJSON (parseJSON), ToJSON, Value)
-import Data.Aeson.Types (parseMaybe)
-import Data.Maybe (fromJust)
+import Communication (JsonInput (..), JsonTask (..))
+import Data.Aeson (ToJSON)
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
+import Polysemy
+import Polysemy.Log
+import Polysemy.Mutate
+import Polysemy.Supply
 import Servant
-import Task (Task (Pair), update)
-import Task.Run (interact)
+import Task (RealWorld, Task (Pair), update, view, (<?>), (>>?))
+import Task.Input (Concrete (..), Input (..))
+import Task.Run (NotApplicable, Steps, initialise, interact)
 import WaiAppStatic.Types (unsafeToPiece)
 
 data State h t = State
-  { currentTask :: TVar (Task h t)
+  { currentTask :: TVar (Task RealWorld t),
+    initialised :: Bool
   }
 
 type TaskAPI =
-  "initial-task" :> Get '[JSON] Envelope
-    :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] Envelope
+  "initial-task" :> Get '[JSON] JsonTask
+    :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
 
 type StaticAPI = Raw
 
 type API = TaskAPI :<|> StaticAPI
 
 type AppM h t = ReaderT (State h t) Handler
-
--- No error handling for now, a wrong input type results in a runtime error.
---fromJSONValue' :: TaskValue a => Value -> a
---fromJSONValue' = fromJust << parseMaybe parseJSON
-
--- We define this method for now until everything else compiles - then we can
--- see how we are actually going to use TopHat's interact.
-interact' :: Input -> Task h a -> Task h a
-interact' = undefined
 
 server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
@@ -47,21 +43,26 @@ server _ = taskServer :<|> staticServer
       initialTaskHandler
         :<|> interactHandler
 
-    initialTaskHandler :: ToJSON t => AppM h t Envelope
+    initialTaskHandler :: ToJSON t => AppM h t JsonTask
     initialTaskHandler = do
+      State {currentTask = t, initialised = i} <- ask
+      t' <- readTVarIO t
+      if i
+        then return (JsonTask t')
+        else
+          liftIO <| do
+            initialisedTask <- initialiseIO t'
+            atomically <| writeTVar t initialisedTask
+            return (JsonTask initialisedTask)
+
+    interactHandler :: ToJSON t => JsonInput -> AppM h t JsonTask
+    interactHandler (JsonInput input) = do
       State {currentTask = t} <- ask
       liftIO <| do
-        t' <- atomically <| readTVar t
-        return (Envelope t')
-
-    interactHandler :: ToJSON t => Input -> AppM h t Envelope
-    interactHandler input = do
-      State {currentTask = t} <- ask
-      liftIO <| atomically <| do
-        t' <- readTVar t
-        let newTask = interact' input t'
-        writeTVar t newTask
-        return (Envelope newTask)
+        t' <- readTVarIO t
+        newTask <- interactIO input t'
+        atomically <| writeTVar t newTask
+        return (JsonTask newTask)
 
     staticServer :: ServerT StaticAPI (AppM h t)
     staticServer =
@@ -71,6 +72,28 @@ server _ = taskServer :<|> staticServer
       let defaultSettings = defaultWebAppSettings "frontend/prod"
           indexFallback = map unsafeToPiece ["index.html"]
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
+
+interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
+interactIO i t =
+  withIO <| do
+    interact i t
+
+initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
+initialiseIO t =
+  withIO <| do
+    initialise t
+
+withIO ::
+  Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
+  IO a
+withIO =
+  writeToIO
+    >> supplyToIO
+    >> readToIO
+    >> logToIO @NotApplicable
+    >> logToIO @Steps
+    >> allocToIO
+    >> runM
 
 apiProxy :: State h t -> Proxy API
 apiProxy _ = Proxy
@@ -96,4 +119,4 @@ corsPolicy = cors (const <| Just policy)
 initialTask :: Task h Int
 initialTask = do
   x <- update 42
-  update (x + 1)
+  update (x + 1) <?> fail

@@ -35,7 +35,7 @@ initApp = do
   -- a later stage.
   let task = initialTask
   currentTaskTVar <- atomically <| newTVar task
-  let app = application (State {currentTask = currentTaskTVar})
+  let app = application (State {currentTask = currentTaskTVar, initialised = False})
   return app
 
 watchTermFile :: IO ()
