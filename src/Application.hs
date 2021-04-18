@@ -12,7 +12,7 @@ import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
 import Servant
-import Task (Task, update)
+import Task (Task (Pair), update)
 import Task.Run (interact)
 import WaiAppStatic.Types (unsafeToPiece)
 
@@ -94,4 +94,6 @@ corsPolicy = cors (const <| Just policy)
         }
 
 initialTask :: Task h Int
-initialTask = update 42
+initialTask = do
+  x <- update 42
+  update (x + 1)

@@ -33,6 +33,7 @@ dependencies:
 - aeson
 - wai-app-static
 - wai-cors
+- polysemy
 
 library:
   source-dirs: src

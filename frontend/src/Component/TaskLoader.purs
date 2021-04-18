@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (getInitialTask, interact)
-import App.Task (Id, Input(..), Task(..), Value(..), updateTask)
+import App.Task (Editor(..), Input(..), Name, Task(..), Value(..), updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Either (Either(..))
@@ -25,7 +25,7 @@ type State
 
 data Action
   = FetchInitialTask
-  | UpdateValue Id Value
+  | UpdateValue Name Value
   | Interact Task Event
   | LogState -- For debug purposes...
 
@@ -62,8 +62,9 @@ handleAction (Interact task event) = do
   s <- H.get
   case task of
     Pair _ _ -> logShow "Error"
-    Update id value -> do
-      r <- H.liftAff $ interact (Input id value)
+    Step _ -> logShow "Error"
+    Edit name (Update value) -> do
+      r <- H.liftAff $ interact (Input name value)
       case r of
         Left err -> logShow err
         Right newTask -> do
@@ -93,14 +94,14 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask task@(Update id value) =
-  Bulma.panel ("Update Task [" <> show id <> "]")
+renderTask task@(Edit name (Update value)) =
+  Bulma.panel ("Update Task [" <> show name <> "]")
     ( HH.form
         [ HE.onSubmit \e -> Interact task e, css "control" ]
         [ HH.div [ css "field" ]
             [ HH.label_ [ HH.text "Value" ]
             , HH.div [ css "control" ]
-                [ renderInput id value ]
+                [ renderInput name value ]
             ]
         , HH.div [ css "field is-grouped" ]
             [ HH.div [ css "control" ]
@@ -122,30 +123,32 @@ renderTask (Pair t1 t2) =
     , HH.div [ css "column" ] [ renderTask t2 ]
     ]
 
-renderInput :: forall a. Id -> Value -> HH.HTML a Action
-renderInput id (String value) =
+renderTask (Step t) = renderTask t
+
+renderInput :: forall a. Name -> Value -> HH.HTML a Action
+renderInput name (String value) =
   HH.input
     [ css "input"
     , HP.value value
-    , HE.onValueInput \s -> UpdateValue id (Int $ unsafePartial $ fromJust $ fromString s)
+    , HE.onValueInput \s -> UpdateValue name (Int $ unsafePartial $ fromJust $ fromString s)
     ]
 
-renderInput id (Int value) =
+renderInput name (Int value) =
   HH.input
     [ css "input"
     , HP.value $ show value
-    , HE.onValueInput \s -> UpdateValue id (String s)
+    , HE.onValueInput \s -> UpdateValue name (String s)
     , HP.type_ HP.InputNumber
     ]
 
-renderInput id (Boolean value) =
+renderInput name (Boolean value) =
   HH.label
     [ css "checkbox" ]
     [ HH.input
         [ css "checkbox"
         , HP.checked value
         , HP.type_ HP.InputCheckbox
-        , HE.onChange \e -> UpdateValue id (Boolean (not value))
+        , HE.onChange \e -> UpdateValue name (Boolean (not value))
         ]
     , HH.text "Enabled"
     ]

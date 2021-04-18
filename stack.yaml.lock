@@ -7,14 +7,14 @@ packages:
 - completed:
     name: tophat
     version: 0.2.0.0
-    git: https://github.com/timjs/tophat-haskell.git
+    git: https://github.com/mark-gerarts/tophat-haskell
     pantry-tree:
       size: 1708
-      sha256: 1302698b016f197976181cf7a8764469e24ab01f7b459fb555ac80a9020cca54
-    commit: 665d620ded5b61c454b6c50b8590f0d3f21c055f
+      sha256: e3070cf6b0be1b3398829c1c6af68fb9cd04d732ac2855fc3a66fb40de8226b5
+    commit: 7bd5bbe96688a8720b0786d03adb4e112ee80754
   original:
-    git: https://github.com/timjs/tophat-haskell.git
-    commit: 665d620ded5b61c454b6c50b8590f0d3f21c055f
+    git: https://github.com/mark-gerarts/tophat-haskell
+    commit: 7bd5bbe96688a8720b0786d03adb4e112ee80754
 - completed:
     hackage: base-noprelude-4.13.0.0@sha256:3cccbfda38e1422ca5cc436d58858ba51ff9114d2ed87915a6569be11e4e5a90,6842
     pantry-tree:
