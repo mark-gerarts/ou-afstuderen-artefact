@@ -140,7 +140,15 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
-initialTask :: Task h Int
+initialTask :: Task h Text
 initialTask =
-  update 0 >>? \x ->
-    view (x + 1)
+  update (1 :: Int) >< update (2 :: Int) >>? \(l, r) ->
+    view
+      <| unwords
+        [ "The left value was ",
+          display l,
+          ", the right value was",
+          display r,
+          ", and if you add them together you get ",
+          display (l + r)
+        ]
