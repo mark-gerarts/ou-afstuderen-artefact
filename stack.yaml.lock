@@ -10,11 +10,11 @@ packages:
     git: https://github.com/mark-gerarts/tophat-haskell
     pantry-tree:
       size: 1708
-      sha256: e3070cf6b0be1b3398829c1c6af68fb9cd04d732ac2855fc3a66fb40de8226b5
-    commit: 7bd5bbe96688a8720b0786d03adb4e112ee80754
+      sha256: 20cea0783558b917a3d3eefd78ed30b7f9b68d93510bcd68ef97ef458c72bdf0
+    commit: a4287aa7f1661e40b3ced5e7adbcab0769ca8794
   original:
     git: https://github.com/mark-gerarts/tophat-haskell
-    commit: 7bd5bbe96688a8720b0786d03adb4e112ee80754
+    commit: a4287aa7f1661e40b3ced5e7adbcab0769ca8794
 - completed:
     hackage: base-noprelude-4.13.0.0@sha256:3cccbfda38e1422ca5cc436d58858ba51ff9114d2ed87915a6569be11e4e5a90,6842
     pantry-tree:

@@ -1,21 +1,7 @@
 module App.Task where
 
 import Prelude
-import Data.Argonaut
-  ( class DecodeJson
-  , class EncodeJson
-  , decodeJson
-  , encodeJson
-  , isBoolean
-  , isNumber
-  , jsonEmptyObject
-  , jsonNull
-  , (.!=)
-  , (.:)
-  , (.:?)
-  , (:=)
-  , (~>)
-  )
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
 import Data.Either (Either(..))
 
@@ -49,9 +35,11 @@ instance showTask :: Show Task where
 
 data Editor
   = Update Value
+  | View Value
 
 instance showEditor :: Show Editor where
-  show (Update x) = show x
+  show (Update x) = "Update " <> show x
+  show (View x) = "View " <> show x
 
 instance decodeJsonEditor :: DecodeJson Editor where
   decodeJson json = do
@@ -61,6 +49,9 @@ instance decodeJsonEditor :: DecodeJson Editor where
       "update" -> do
         value <- obj .: "value"
         pure $ Update value
+      "view" -> do
+        value <- obj .: "value"
+        pure $ View value
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name
@@ -109,17 +100,48 @@ instance encodeJsonValue :: EncodeJson Value where
   encodeJson (Boolean bool) = encodeJson bool
 
 data Input
-  = Input Name Value
+  = Insert Int Value
+  | Option Name String
 
 instance showInput :: Show Input where
-  show (Input id x) = "Input [" <> show x <> "] [" <> show id <> "]"
+  show (Insert id x) = "Insert [" <> show x <> "] [" <> show id <> "]"
+  show (Option name label) = "Option [" <> label <> "] [" <> show name <> "]"
 
 instance encodeInput :: EncodeJson Input where
-  encodeJson (Input name value) =
-    "value" := value
+  encodeJson (Insert id value) =
+    "type" := "insert"
+      ~> "value"
+      := value
+      ~> "id"
+      := id
+      ~> jsonEmptyObject
+  encodeJson (Option name label) =
+    "type" := "option"
       ~> "name"
       := name
+      ~> "label"
+      := label
       ~> jsonEmptyObject
+
+instance decodeJsonInput :: DecodeJson Input where
+  decodeJson json = do
+    obj <- decodeJson json
+    inputType <- obj .: "type"
+    case inputType of
+      "insert" -> do
+        value <- obj .: "value"
+        id <- obj .: "id"
+        pure $ Insert id value
+      "option" -> do
+        label <- obj .: "label"
+        name <- obj .:? "name" .!= Unnamed
+        pure $ Option name label
+      _ -> Left (JsonDecodeError.UnexpectedValue json)
+
+isOption :: Input -> Boolean
+isOption (Insert _ _) = false
+
+isOption (Option _ _) = true
 
 -- @todo: rework the frontend so this updating is no longer necessary. Input
 -- should just be sent to the backend straight away.
@@ -136,4 +158,6 @@ updateTask id newValue (Pair t1 t2) =
 updateTask id newValue (Step t) = Step (updateTask id newValue t)
 
 setValue :: Editor -> Value -> Editor
-setValue (Update _) = Update
+setValue (Update _) value = Update value
+
+setValue editor value = editor

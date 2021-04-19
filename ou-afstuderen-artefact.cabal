@@ -39,6 +39,7 @@ library
     , directory
     , http-types
     , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers
@@ -65,6 +66,7 @@ executable ou-afstuderen-artefact-exe
     , http-types
     , ou-afstuderen-artefact
     , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers
@@ -92,6 +94,7 @@ test-suite ou-afstuderen-artefact-test
     , http-types
     , ou-afstuderen-artefact
     , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers

@@ -1,10 +1,11 @@
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
-import App.Client (getInitialTask, interact)
-import App.Task (Editor(..), Input(..), Name, Task(..), Value(..), updateTask)
+import App.Client (TaskResponse(..), getInitialTask, interact)
+import App.Task (Editor(..), Input(..), Name(..), Task(..), Value(..), isOption, updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
+import Data.Array (filter)
 import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..), fromJust)
@@ -17,16 +18,18 @@ import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
 import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
+import Web.UIEvent.MouseEvent (toEvent)
 
 type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
+    , possibleInputs :: Array Input
     }
 
 data Action
   = FetchInitialTask
   | UpdateValue Name Value
-  | Interact Task Event
+  | Interact Input Event
   | LogState -- For debug purposes...
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
@@ -45,34 +48,37 @@ taskLoader =
   initialState _ =
     { isLoading: true
     , currentTask: Nothing
+    , possibleInputs: []
     }
 
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction FetchInitialTask = do
-  t <- H.liftAff $ getInitialTask
-  case t of
+  taskResp <- H.liftAff $ getInitialTask
+  case taskResp of
     Left err -> logShow err
-    Right task -> H.modify_ \s -> s { currentTask = Just task }
+    Right (TaskResponse task inputs) ->
+      H.modify_ \s ->
+        s
+          { currentTask = Just task
+          , possibleInputs = inputs
+          }
   H.modify_ \s -> s { isLoading = false }
 
 handleAction LogState = H.get >>= logShow
 
-handleAction (Interact task event) = do
+handleAction (Interact input event) = do
   H.liftEffect $ Event.preventDefault event
   s <- H.get
-  case task of
-    Pair _ _ -> logShow "Error"
-    Step _ -> logShow "Error"
-    Edit name (Update value) -> do
-      r <- H.liftAff $ interact (Input name value)
-      case r of
-        Left err -> logShow err
-        Right newTask -> do
-          -- For some reason Halogen renders an empty input if we immediately
-          -- alter the state. By first setting the state to something else this
-          -- doesn't happen...
-          H.modify_ \s' -> s' { currentTask = Nothing }
-          H.modify_ \s' -> s' { currentTask = Just newTask }
+  taskResp <- H.liftAff $ interact input
+  -- @todo: get rid of the copy paste, introduce a new message?
+  case taskResp of
+    Left err -> logShow err
+    Right (TaskResponse task inputs) ->
+      H.modify_ \s ->
+        s
+          { currentTask = Just task
+          , possibleInputs = inputs
+          }
 
 handleAction (UpdateValue id x) = do
   H.modify_ \s -> s { currentTask = (updateTask id x) <$> s.currentTask }
@@ -80,7 +86,7 @@ handleAction (UpdateValue id x) = do
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
-  { currentTask: Just task } -> renderTask task
+  { currentTask: Just task, possibleInputs: inputs } -> renderTaskWithInputs task inputs
   _ -> renderError
 
 renderLoadingScreen :: forall a. HH.HTML a Action
@@ -93,28 +99,34 @@ renderLoadingScreen =
 renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
+renderTaskWithInputs :: forall a. Task -> Array Input -> HH.HTML a Action
+renderTaskWithInputs task inputs =
+  HH.div_
+    [ renderTask task, renderInputs inputs ]
+
 renderTask :: forall a. Task -> HH.HTML a Action
-renderTask task@(Edit name (Update value)) =
+renderTask task@(Edit name@(Named id) (Update value)) =
   Bulma.panel ("Update Task [" <> show name <> "]")
     ( HH.form
-        [ HE.onSubmit \e -> Interact task e, css "control" ]
+        [ HE.onSubmit \e -> Interact (Insert id value) e, css "control" ]
         [ HH.div [ css "field" ]
             [ HH.label_ [ HH.text "Value" ]
             , HH.div [ css "control" ]
-                [ renderInput name value ]
+                [ renderEditor name value ]
             ]
         , HH.div [ css "field is-grouped" ]
             [ HH.div [ css "control" ]
                 [ HH.button [ css "button is-link" ] [ HH.text "Submit" ]
                 ]
-            , HH.div [ css "control" ]
-                [ HH.a
-                    [ css "button is-link is-light", HE.onClick \e -> LogState ]
-                    [ HH.text "Log state" ]
-                ]
             ]
         ]
     )
+
+renderTask task@(Edit name@(Named id) (View value)) =
+  Bulma.panel ("Update Task [" <> show name <> "]")
+    (HH.p_ [ HH.text $ show value ])
+
+renderTask (Edit Unnamed _) = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
 renderTask (Pair t1 t2) =
   HH.div
@@ -125,23 +137,23 @@ renderTask (Pair t1 t2) =
 
 renderTask (Step t) = renderTask t
 
-renderInput :: forall a. Name -> Value -> HH.HTML a Action
-renderInput name (String value) =
+renderEditor :: forall a. Name -> Value -> HH.HTML a Action
+renderEditor name (String value) =
   HH.input
     [ css "input"
     , HP.value value
-    , HE.onValueInput \s -> UpdateValue name (Int $ unsafePartial $ fromJust $ fromString s)
+    , HE.onValueInput \s -> UpdateValue name (String s)
     ]
 
-renderInput name (Int value) =
+renderEditor name (Int value) =
   HH.input
     [ css "input"
     , HP.value $ show value
-    , HE.onValueInput \s -> UpdateValue name (String s)
+    , HE.onValueInput \s -> UpdateValue name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
 
-renderInput name (Boolean value) =
+renderEditor name (Boolean value) =
   HH.label
     [ css "checkbox" ]
     [ HH.input
@@ -152,3 +164,26 @@ renderInput name (Boolean value) =
         ]
     , HH.text "Enabled"
     ]
+
+renderInputs :: forall a. Array Input -> HH.HTML a Action
+renderInputs inputs =
+  let
+    options = filter isOption inputs
+
+    buttons = [ renderLogStateButton ] <> map renderInput options
+  in
+    HH.div [ css "buttons is-right" ] buttons
+
+renderInput :: forall a. Input -> HH.HTML a Action
+renderInput (Option name label) =
+  HH.button
+    [ css "button is-primary", HE.onClick \e -> Interact (Option name label) (toEvent e) ]
+    [ HH.text label ]
+
+renderInput _ = HH.div_ []
+
+renderLogStateButton :: forall a. HH.HTML a Action
+renderLogStateButton =
+  HH.button
+    [ css "button is-link is-light", HE.onClick \e -> LogState ]
+    [ HH.text "Log state" ]

@@ -16,7 +16,8 @@ import Polysemy.Mutate
 import Polysemy.Supply
 import Servant
 import Task (RealWorld, Task (Pair), update, view, (<?>), (>>?))
-import Task.Input (Concrete (..), Input (..))
+import Task.Input (Concrete (..), Dummy, Input (..))
+import Task.Observe (inputs)
 import Task.Run (NotApplicable, Steps, initialise, interact)
 import WaiAppStatic.Types (unsafeToPiece)
 
@@ -45,15 +46,20 @@ server _ = taskServer :<|> staticServer
 
     initialTaskHandler :: ToJSON t => AppM h t JsonTask
     initialTaskHandler = do
-      State {currentTask = t, initialised = i} <- ask
-      t' <- readTVarIO t
-      if i
-        then return (JsonTask t')
-        else
-          liftIO <| do
-            initialisedTask <- initialiseIO t'
-            atomically <| writeTVar t initialisedTask
-            return (JsonTask initialisedTask)
+      initialisedTask <- getInitialisedTask
+      possibleInputs <- liftIO <| inputsIO initialisedTask
+      return (JsonTask initialisedTask possibleInputs)
+      where
+        getInitialisedTask = do
+          State {currentTask = t, initialised = i} <- ask
+          t' <- readTVarIO t
+          if i
+            then return t'
+            else
+              liftIO <| do
+                initialisedTask <- initialiseIO t'
+                atomically <| writeTVar t initialisedTask
+                return initialisedTask
 
     interactHandler :: ToJSON t => JsonInput -> AppM h t JsonTask
     interactHandler (JsonInput input) = do
@@ -62,7 +68,8 @@ server _ = taskServer :<|> staticServer
         t' <- readTVarIO t
         newTask <- interactIO input t'
         atomically <| writeTVar t newTask
-        return (JsonTask newTask)
+        possibleInputs <- inputsIO newTask
+        return (JsonTask newTask possibleInputs)
 
     staticServer :: ServerT StaticAPI (AppM h t)
     staticServer =
@@ -82,6 +89,11 @@ initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
 initialiseIO t =
   withIO <| do
     initialise t
+
+inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
+inputsIO t =
+  withIO <| do
+    inputs t
 
 withIO ::
   Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
@@ -117,6 +129,6 @@ corsPolicy = cors (const <| Just policy)
         }
 
 initialTask :: Task h Int
-initialTask = do
-  x <- update 42
-  update (x + 1) <?> fail
+initialTask =
+  update 0 >>? \x ->
+    view (x + 1)
