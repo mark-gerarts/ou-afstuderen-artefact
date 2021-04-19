@@ -1,4 +1,4 @@
-module App.Client (ApiError, TaskResponse(..), getInitialTask, interact) where
+module App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset) where
 
 import Prelude
 import Affjax as AX
@@ -46,6 +46,15 @@ getInitialTask = do
 interact :: Input -> Aff (Either ApiError TaskResponse)
 interact input = do
   r <- AX.post AXRF.json (endpoint "interact") $ Just (AXRB.json (encodeJson input))
+  case r of
+    Left err -> pure $ Left (RequestError err)
+    Right response -> case decodeJson response.body of
+      Left err -> pure $ Left (JsonError err)
+      Right task -> pure $ Right task
+
+reset :: Aff (Either ApiError TaskResponse)
+reset = do
+  r <- AX.get AXRF.json $ endpoint "reset"
   case r of
     Left err -> pure $ Left (RequestError err)
     Right response -> case decodeJson response.body of

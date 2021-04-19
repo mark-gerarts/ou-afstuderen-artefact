@@ -1,7 +1,7 @@
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
-import App.Client (TaskResponse(..), getInitialTask, interact)
+import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
 import App.Task (Editor(..), Input(..), Name(..), Task(..), Value(..), isOption, updateTask)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
@@ -31,6 +31,7 @@ data Action
   | UpdateValue Name Value
   | Interact Input Event
   | LogState -- For debug purposes...
+  | Reset
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
 taskLoader =
@@ -53,16 +54,13 @@ taskLoader =
 
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction FetchInitialTask = do
-  taskResp <- H.liftAff $ getInitialTask
-  case taskResp of
-    Left err -> logShow err
-    Right (TaskResponse task inputs) ->
-      H.modify_ \s ->
-        s
-          { currentTask = Just task
-          , possibleInputs = inputs
-          }
+  taskResp <- H.liftAff getInitialTask
+  setFromTaskResponse taskResp
   H.modify_ \s -> s { isLoading = false }
+
+handleAction Reset = do
+  taskResp <- H.liftAff reset
+  setFromTaskResponse taskResp
 
 handleAction LogState = H.get >>= logShow
 
@@ -70,18 +68,20 @@ handleAction (Interact input event) = do
   H.liftEffect $ Event.preventDefault event
   s <- H.get
   taskResp <- H.liftAff $ interact input
-  -- @todo: get rid of the copy paste, introduce a new message?
-  case taskResp of
-    Left err -> logShow err
-    Right (TaskResponse task inputs) ->
-      H.modify_ \s ->
-        s
-          { currentTask = Just task
-          , possibleInputs = inputs
-          }
+  setFromTaskResponse taskResp
 
 handleAction (UpdateValue id x) = do
   H.modify_ \s -> s { currentTask = (updateTask id x) <$> s.currentTask }
+
+setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
+setFromTaskResponse taskResp = case taskResp of
+  Left err -> logShow err
+  Right (TaskResponse task inputs) ->
+    H.modify_ \s ->
+      s
+        { currentTask = Just task
+        , possibleInputs = inputs
+        }
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
@@ -170,7 +170,7 @@ renderInputs inputs =
   let
     options = filter isOption inputs
 
-    buttons = [ renderLogStateButton ] <> map renderInput options
+    buttons = renderActionButtons <> map renderInput options
   in
     HH.div [ css "buttons is-right" ] buttons
 
@@ -182,8 +182,12 @@ renderInput (Option name label) =
 
 renderInput _ = HH.div_ []
 
-renderLogStateButton :: forall a. HH.HTML a Action
-renderLogStateButton =
-  HH.button
-    [ css "button is-link is-light", HE.onClick \e -> LogState ]
-    [ HH.text "Log state" ]
+renderActionButtons :: forall a. Array (HH.HTML a Action)
+renderActionButtons =
+  [ HH.button
+      [ css "button is-danger is-outlined", HE.onClick \e -> Reset ]
+      [ HH.text "Reset" ]
+  , HH.button
+      [ css "button is-link is-outlined", HE.onClick \e -> LogState ]
+      [ HH.text "Log state" ]
+  ]

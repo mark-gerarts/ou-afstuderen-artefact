@@ -23,12 +23,14 @@ import WaiAppStatic.Types (unsafeToPiece)
 
 data State h t = State
   { currentTask :: TVar (Task RealWorld t),
-    initialised :: Bool
+    initialised :: Bool,
+    originalTask :: Task RealWorld t
   }
 
 type TaskAPI =
   "initial-task" :> Get '[JSON] JsonTask
     :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
+    :<|> "reset" :> Get '[JSON] JsonTask
 
 type StaticAPI = Raw
 
@@ -43,6 +45,7 @@ server _ = taskServer :<|> staticServer
     taskServer = do
       initialTaskHandler
         :<|> interactHandler
+        :<|> resetHandler
 
     initialTaskHandler :: ToJSON t => AppM h t JsonTask
     initialTaskHandler = do
@@ -70,6 +73,15 @@ server _ = taskServer :<|> staticServer
         atomically <| writeTVar t newTask
         possibleInputs <- inputsIO newTask
         return (JsonTask newTask possibleInputs)
+
+    resetHandler :: ToJSON t => AppM h t JsonTask
+    resetHandler = do
+      State {currentTask = t, originalTask = t_o} <- ask
+      liftIO <| do
+        initialisedTask <- initialiseIO t_o
+        atomically <| writeTVar t initialisedTask
+        possibleInputs <- inputsIO initialisedTask
+        return (JsonTask initialisedTask possibleInputs)
 
     staticServer :: ServerT StaticAPI (AppM h t)
     staticServer =
