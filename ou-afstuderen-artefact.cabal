@@ -25,8 +25,8 @@ source-repository head
 library
   exposed-modules:
       Application
+      Communication
       Server
-      Task
   other-modules:
       Paths_ou_afstuderen_artefact
   hs-source-dirs:
@@ -38,6 +38,8 @@ library
     , containers
     , directory
     , http-types
+    , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers
@@ -63,6 +65,8 @@ executable ou-afstuderen-artefact-exe
     , directory
     , http-types
     , ou-afstuderen-artefact
+    , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers
@@ -89,6 +93,8 @@ test-suite ou-afstuderen-artefact-test
     , directory
     , http-types
     , ou-afstuderen-artefact
+    , polysemy
+    , scientific
     , servant-server
     , tophat
     , unordered-containers

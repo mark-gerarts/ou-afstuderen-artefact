@@ -1,66 +1,89 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Application (application, initialTask, State (..)) where
 
-import Data.Aeson (FromJSON (parseJSON), Value)
-import Data.Aeson.Types (parseMaybe)
-import Data.Maybe (fromJust)
+import Communication (JsonInput (..), JsonTask (..))
+import Data.Aeson (ToJSON)
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
+import Polysemy
+import Polysemy.Log
+import Polysemy.Mutate
+import Polysemy.Supply
 import Servant
-import Task (Input (..), Task (..), TaskValue)
+import Task (RealWorld, Task (Pair), update, view, (<?>), (>>?))
+import Task.Input (Concrete (..), Dummy, Input (..))
+import Task.Observe (inputs)
+import Task.Run (NotApplicable, Steps, initialise, interact)
 import WaiAppStatic.Types (unsafeToPiece)
 
-data State a = State
-  { currentTask :: TVar (Task a)
+data State h t = State
+  { currentTask :: TVar (Task RealWorld t),
+    initialised :: Bool,
+    originalTask :: Task RealWorld t
   }
 
-type TaskAPI a =
-  "initial-task" :> Get '[JSON] (Task a)
-    :<|> "interact" :> ReqBody '[JSON] Input :> Post '[JSON] (Task a)
+type TaskAPI =
+  "initial-task" :> Get '[JSON] JsonTask
+    :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
+    :<|> "reset" :> Get '[JSON] JsonTask
 
 type StaticAPI = Raw
 
-type API a = TaskAPI a :<|> StaticAPI
+type API = TaskAPI :<|> StaticAPI
 
-type AppM a = ReaderT (State a) Handler
+type AppM h t = ReaderT (State h t) Handler
 
-interact :: Input -> Task a -> Task a
-interact (Input id value) task@(Update taskId _)
-  | id == taskId = Update (taskId + 3) (fromJSONValue' value)
-  | otherwise = task
-interact input (Pair a b) = Pair (interact input a) (interact input b)
-
--- No error handling for now, a wrong input type results in a runtime error.
-fromJSONValue' :: TaskValue a => Value -> a
-fromJSONValue' = fromJust << parseMaybe parseJSON
-
-server :: State a -> ServerT (API a) (AppM a)
+server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
   where
-    taskServer :: ServerT (TaskAPI a) (AppM a)
-    taskServer =
+    taskServer :: ToJSON t => ServerT TaskAPI (AppM h t)
+    taskServer = do
       initialTaskHandler
         :<|> interactHandler
+        :<|> resetHandler
 
-    initialTaskHandler :: AppM a (Task a)
+    initialTaskHandler :: ToJSON t => AppM h t JsonTask
     initialTaskHandler = do
-      State {currentTask = t} <- ask
-      liftIO <| atomically <| readTVar t
+      initialisedTask <- getInitialisedTask
+      possibleInputs <- liftIO <| inputsIO initialisedTask
+      return (JsonTask initialisedTask possibleInputs)
+      where
+        getInitialisedTask = do
+          State {currentTask = t, initialised = i} <- ask
+          t' <- readTVarIO t
+          if i
+            then return t'
+            else
+              liftIO <| do
+                initialisedTask <- initialiseIO t'
+                atomically <| writeTVar t initialisedTask
+                return initialisedTask
 
-    interactHandler :: Input -> AppM a (Task a)
-    interactHandler input = do
+    interactHandler :: ToJSON t => JsonInput -> AppM h t JsonTask
+    interactHandler (JsonInput input) = do
       State {currentTask = t} <- ask
-      liftIO <| atomically <| do
-        t' <- readTVar t
-        let newTask = interact input t'
-        writeTVar t newTask
-        return newTask
+      liftIO <| do
+        t' <- readTVarIO t
+        newTask <- interactIO input t'
+        atomically <| writeTVar t newTask
+        possibleInputs <- inputsIO newTask
+        return (JsonTask newTask possibleInputs)
 
-    staticServer :: ServerT StaticAPI (AppM a)
+    resetHandler :: ToJSON t => AppM h t JsonTask
+    resetHandler = do
+      State {currentTask = t, originalTask = t_o} <- ask
+      liftIO <| do
+        initialisedTask <- initialiseIO t_o
+        atomically <| writeTVar t initialisedTask
+        possibleInputs <- inputsIO initialisedTask
+        return (JsonTask initialisedTask possibleInputs)
+
+    staticServer :: ServerT StaticAPI (AppM h t)
     staticServer =
       -- serveDirectoryWebAbb does not automatically use index.html when
       -- visiting /, so we use the default webApp settings, but override the
@@ -69,10 +92,37 @@ server _ = taskServer :<|> staticServer
           indexFallback = map unsafeToPiece ["index.html"]
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
 
-apiProxy :: State a -> Proxy (API a)
+interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
+interactIO i t =
+  withIO <| do
+    interact i t
+
+initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
+initialiseIO t =
+  withIO <| do
+    initialise t
+
+inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
+inputsIO t =
+  withIO <| do
+    inputs t
+
+withIO ::
+  Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
+  IO a
+withIO =
+  writeToIO
+    >> supplyToIO
+    >> readToIO
+    >> logToIO @NotApplicable
+    >> logToIO @Steps
+    >> allocToIO
+    >> runM
+
+apiProxy :: State h t -> Proxy API
 apiProxy _ = Proxy
 
-application :: State a -> Application
+application :: ToJSON t => State h t -> Application
 application s =
   corsPolicy
     <| serve (apiProxy s)
@@ -90,17 +140,15 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
-initialTask :: Task (Text, (Int, Bool))
-initialTask = Pair textUpdate rightPair
-  where
-    textUpdate :: Task Text
-    textUpdate = Update 1 "Edit me!"
-
-    intUpdate :: Task Int
-    intUpdate = Update 2 123
-
-    boolUpdate :: Task Bool
-    boolUpdate = Update 3 True
-
-    rightPair :: Task (Int, Bool)
-    rightPair = Pair intUpdate boolUpdate
+initialTask :: Task h Text
+initialTask =
+  update (1 :: Int) >< update (2 :: Int) >>? \(l, r) ->
+    view
+      <| unwords
+        [ "The left value was ",
+          display l,
+          ", the right value was",
+          display r,
+          ", and if you add them together you get ",
+          display (l + r)
+        ]
