@@ -6,6 +6,7 @@
 module Communication (JsonTask (..), JsonInput (..)) where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser, parseFail)
 import Data.Maybe (fromJust)
 import Data.Scientific (toBoundedInteger)
 import Task
@@ -47,10 +48,13 @@ nameToJSON :: Name -> Value
 nameToJSON (Named name) = toJSON name
 nameToJSON Unnamed = Null
 
-nameFromJSON :: Value -> Maybe Name
-nameFromJSON (Number i) = Named <|| toBoundedInteger i
-nameFromJSON Null = Just Unnamed
-nameFromJSON _ = Nothing
+parseName :: Value -> Parser Name
+parseName (Number i) =
+  case toBoundedInteger i of
+    Just i' -> return (Named i')
+    Nothing -> parseFail "Unexpected name"
+parseName Null = return Unnamed
+parseName _ = parseFail "Unexpected name"
 
 editorToJSON :: Editor h t -> Value
 editorToJSON (Update t) =
@@ -68,7 +72,6 @@ editorToJSON _ = undefined
 data JsonInput where
   JsonInput :: Input Concrete -> JsonInput
 
--- @todo: hardcoded Int for now
 instance FromJSON JsonInput where
   parseJSON =
     withObject "Input" <| \obj -> do
@@ -76,13 +79,22 @@ instance FromJSON JsonInput where
       case inputType of
         ("insert" :: Text) -> do
           id <- obj .: "id"
-          value <- obj .: "value"
-          pure (JsonInput (Insert id (Concrete (value :: Int))))
+          value <- obj .: "value" >>= parseConcrete
+          pure (JsonInput (Insert id value))
         ("option" :: Text) -> do
-          name <- obj .: "name"
+          name <- obj .: "name" >>= parseName
           label <- obj .: "label"
-          pure (JsonInput (Option (fromJust <| nameFromJSON name) label))
-        _ -> pure (JsonInput (Option Unnamed "todo: error handle me"))
+          pure (JsonInput (Option name label))
+        _ -> parseFail "Invalid input type"
+
+parseConcrete :: Value -> Parser Concrete
+parseConcrete (String s) = return (Concrete s)
+parseConcrete (Number x) =
+  case toBoundedInteger x of
+    Just (i :: Int) -> return (Concrete i)
+    Nothing -> parseFail "Invalid integer value"
+parseConcrete (Bool b) = return (Concrete b)
+parseConcrete _ = parseFail "Unsupported type"
 
 inputToJSON :: Input Dummy -> Value
 inputToJSON (Insert id value) =

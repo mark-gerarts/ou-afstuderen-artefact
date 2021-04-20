@@ -10,12 +10,19 @@ import Data.Aeson (ToJSON)
 import Network.Wai (Middleware)
 import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
-import Polysemy
-import Polysemy.Log
+import Polysemy (Embed, Sem, runM)
+import Polysemy.Log (Log, logToIO)
 import Polysemy.Mutate
-import Polysemy.Supply
+  ( Alloc,
+    Read,
+    Write,
+    allocToIO,
+    readToIO,
+    writeToIO,
+  )
+import Polysemy.Supply (Supply, supplyToIO)
 import Servant
-import Task (RealWorld, Task (Pair), update, view, (<?>), (>>?))
+import Task (RealWorld, Task (Pair), select, update, view, (<?>), (>>?))
 import Task.Input (Concrete (..), Dummy, Input (..))
 import Task.Observe (inputs)
 import Task.Run (NotApplicable, Steps, initialise, interact)
@@ -140,15 +147,14 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
+-- Some dummy task to showcase all 3 currently supported types working together.
 initialTask :: Task h Text
 initialTask =
-  update (1 :: Int) >< update (2 :: Int) >>? \(l, r) ->
+  update ("Hello!" :: Text) >< (update True >< update (1 :: Int)) >>? \(t, (b, i)) ->
     view
       <| unwords
-        [ "The left value was ",
-          display l,
-          ", the right value was",
-          display r,
-          ", and if you add them together you get ",
-          display (l + r)
+        [ "The left value was \"",
+          display t,
+          "\", the right value was",
+          display (b, i)
         ]
