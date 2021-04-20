@@ -143,7 +143,7 @@ corsPolicy = cors (const <| Just policy)
     policy =
       simpleCorsResourcePolicy
         { corsMethods = ["GET", "POST", "PUT", "OPTIONS"],
-          corsOrigins = Just (["http://localhost:3001"], True),
+          corsOrigins = Just (["http://localhost:3001", "http://localhost:3000"], True),
           corsRequestHeaders = ["authorization", "content-type"]
         }
 

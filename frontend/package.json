@@ -1,7 +1,9 @@
 {
   "private": true,
   "devDependencies": {
+    "cssnano": "^5.0.1",
     "parcel": "1.12.3",
+    "postcss": "^8.2.10",
     "purescript": "^0.14.0",
     "spago": "^0.19.1"
   },
@@ -9,11 +11,12 @@
     "build": "spago build",
     "test": "spago test",
     "serve": "parcel dev/index.html --open -p 3001",
-    "build-prod": "mkdir -p prod && cp dev/index.html prod/ && npm run css-build-prod && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html",
+    "build-prod": "mkdir -p prod && cp dev/index.html prod/ && npm run css-build-prod && rm -rf dist && spago bundle-app --to prod/index.js && parcel build prod/index.html --no-minify",
     "css-build-dev": "node-sass _sass/main.scss dev/css/main.css",
     "css-build-prod": "node-sass _sass/main.scss prod/css/main.css && postcss --use autoprefixer --output prod/css/main.css prod/css/main.css"
   },
   "dependencies": {
+    "autoprefixer": "^10.2.5",
     "bulma": "^0.9.2",
     "node-sass": "^5.0.0",
     "postcss-cli": "^8.3.1"
