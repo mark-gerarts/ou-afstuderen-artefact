@@ -7,14 +7,14 @@ packages:
 - completed:
     name: tophat
     version: 0.2.0.0
-    git: https://github.com/mark-gerarts/tophat-haskell
+    git: https://github.com/timjs/tophat-haskell
     pantry-tree:
-      size: 1708
-      sha256: 20cea0783558b917a3d3eefd78ed30b7f9b68d93510bcd68ef97ef458c72bdf0
-    commit: a4287aa7f1661e40b3ced5e7adbcab0769ca8794
+      size: 1707
+      sha256: 63f4cee424e6e983a50bf9aa17979ce2c5609616e91dde5cc3f39f16c75b0351
+    commit: 202f69880d8fdaeaa5eb165dd34d079e5b8e38af
   original:
-    git: https://github.com/mark-gerarts/tophat-haskell
-    commit: a4287aa7f1661e40b3ced5e7adbcab0769ca8794
+    git: https://github.com/timjs/tophat-haskell
+    commit: 202f69880d8fdaeaa5eb165dd34d079e5b8e38af
 - completed:
     hackage: base-noprelude-4.13.0.0@sha256:3cccbfda38e1422ca5cc436d58858ba51ff9114d2ed87915a6569be11e4e5a90,6842
     pantry-tree:
@@ -30,19 +30,19 @@ packages:
   original:
     hackage: lens-simple-0.1.0.9@sha256:3a4dd8038cba624793d18667e95f91cdd5ed7b7607fea2b51a432bd51dc34ece,5626
 - completed:
-    hackage: polysemy-1.4.0.0@sha256:0245a046eaf936557d4208b5a355df1a20799c9e274f91fa889ab2644ecbabae,6541
+    hackage: polysemy-1.5.0.0@sha256:7edb723e7f703fe273a40e43fe33f6e8f7659fe60759e8698def1481262d314d,6246
     pantry-tree:
-      size: 4379
-      sha256: babfd86f145bc6017f7b8c20e46266ab3a3bb5d5d415d8cf651036b11e57465a
+      size: 4438
+      sha256: 7b7d379751f79f0e0e5afcdf3d8092e5b8e04515710f21f514aa8f29ce4835f4
   original:
-    hackage: polysemy-1.4.0.0@sha256:0245a046eaf936557d4208b5a355df1a20799c9e274f91fa889ab2644ecbabae,6541
+    hackage: polysemy-1.5.0.0@sha256:7edb723e7f703fe273a40e43fe33f6e8f7659fe60759e8698def1481262d314d,6246
 - completed:
-    hackage: polysemy-plugin-0.2.5.2@sha256:649cea55749c38af841e9f3750ccf65be351e597f3085234e28e3491e78d1f78,3155
+    hackage: polysemy-plugin-0.3.0.0@sha256:22e7553d0fddb48d9484ba1c71d2ed825213fcb214866d9b502ee02bfb960cb4,3121
     pantry-tree:
       size: 1162
-      sha256: 20b462f8095a8108ef4d920f0d494ba1299821403ad30169168f4b1968b06c2a
+      sha256: 8d0bbea846d4410b769687daa8595ff1349efd02c1ab528a857883388dd2db45
   original:
-    hackage: polysemy-plugin-0.2.5.2@sha256:649cea55749c38af841e9f3750ccf65be351e597f3085234e28e3491e78d1f78,3155
+    hackage: polysemy-plugin-0.3.0.0@sha256:22e7553d0fddb48d9484ba1c71d2ed825213fcb214866d9b502ee02bfb960cb4,3121
 - completed:
     hackage: lens-family-1.2.3@sha256:84dba69484c78dd2115243dd7585166356c2bceedb0cf4bbd7ea5082af919327,1764
     pantry-tree:

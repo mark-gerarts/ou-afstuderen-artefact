@@ -7,7 +7,6 @@ module Communication (JsonTask (..), JsonInput (..)) where
 
 import Data.Aeson
 import Data.Aeson.Types (Parser, parseFail)
-import Data.Maybe (fromJust)
 import Data.Scientific (toBoundedInteger)
 import Task
 import Task.Input (Concrete (..), Dummy, Input (..))

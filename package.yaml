@@ -33,7 +33,7 @@ dependencies:
 - aeson
 - wai-app-static
 - wai-cors
-- polysemy
+- polysemy >= 1.5.0 && < 2
 - scientific
 
 library:
