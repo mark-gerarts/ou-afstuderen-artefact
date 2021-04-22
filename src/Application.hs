@@ -100,19 +100,13 @@ server _ = taskServer :<|> staticServer
        in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
 
 interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
-interactIO i t =
-  withIO <| do
-    interact i t
+interactIO i t = withIO <| interact i t
 
 initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
-initialiseIO t =
-  withIO <| do
-    initialise t
+initialiseIO t = withIO <| initialise t
 
 inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
-inputsIO t =
-  withIO <| do
-    inputs t
+inputsIO t = withIO <| inputs t
 
 withIO ::
   Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
@@ -154,7 +148,7 @@ initialTask =
     view
       <| unwords
         [ "The left value was \"",
-          display t,
+          t,
           "\", the right value was",
           display (b, i)
         ]
