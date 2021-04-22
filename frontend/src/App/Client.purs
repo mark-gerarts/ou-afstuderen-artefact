@@ -5,6 +5,7 @@ import Affjax as AX
 import Affjax.RequestBody as AXRB
 import Affjax.ResponseFormat as AXRF
 import App.Task (Input, Task)
+import Data.Argonaut.Core (Json)
 import Data.Argonaut (class DecodeJson, JsonDecodeError, decodeJson, encodeJson, (.:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -35,28 +36,21 @@ endpoint :: String -> String
 endpoint s = baseUri <> s
 
 getInitialTask :: Aff (Either ApiError TaskResponse)
-getInitialTask = do
-  r <- AX.get AXRF.json $ endpoint "initial-task"
-  case r of
-    Left err -> pure $ Left (RequestError err)
-    Right response -> case decodeJson response.body of
-      Left err -> pure $ Left (JsonError err)
-      Right task -> pure $ Right task
+getInitialTask = handleTaskResponse <$> (AX.get AXRF.json $ endpoint "initial-task")
 
 interact :: Input -> Aff (Either ApiError TaskResponse)
-interact input = do
-  r <- AX.post AXRF.json (endpoint "interact") $ Just (AXRB.json (encodeJson input))
-  case r of
-    Left err -> pure $ Left (RequestError err)
-    Right response -> case decodeJson response.body of
-      Left err -> pure $ Left (JsonError err)
-      Right task -> pure $ Right task
+interact input =
+  let
+    jsonBody = Just $ AXRB.json (encodeJson input)
+  in
+    handleTaskResponse <$> (AX.post AXRF.json (endpoint "interact") jsonBody)
 
 reset :: Aff (Either ApiError TaskResponse)
-reset = do
-  r <- AX.get AXRF.json $ endpoint "reset"
-  case r of
-    Left err -> pure $ Left (RequestError err)
-    Right response -> case decodeJson response.body of
-      Left err -> pure $ Left (JsonError err)
-      Right task -> pure $ Right task
+reset = handleTaskResponse <$> (AX.get AXRF.json $ endpoint "reset")
+
+handleTaskResponse :: Either AX.Error (AX.Response Json) -> Either ApiError TaskResponse
+handleTaskResponse r = case r of
+  Left err -> Left (RequestError err)
+  Right response -> case decodeJson response.body of
+    Left err -> Left (JsonError err)
+    Right task -> Right task
