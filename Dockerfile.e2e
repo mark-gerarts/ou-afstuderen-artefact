@@ -1,0 +1,33 @@
+# Start from the stack image to save some work. Match it to the stack.yml lts
+# version.
+FROM fpco/stack-build:lts-16.31
+
+# Set up playwright, which is basically the same as the official image:
+# https://github.com/microsoft/playwright/blob/master/utils/docker/Dockerfile.focal
+
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8B1DA6120C2BF624
+
+RUN apt-get update && apt-get install -y curl && \
+    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+    apt-get install -y nodejs
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ssh && \
+    npm install -g yarn
+
+WORKDIR /app
+
+# Allow caching for npm install
+COPY e2e/package.json e2e/package-lock.json ./e2e/
+
+RUN npm ci --prefix=e2e
+
+# ... and for stack
+COPY stack.yaml.lock stack.yaml package.yaml ./
+
+RUN stack build --only-dependencies
+
+COPY . .
+
+RUN stack build
+
+CMD ["npm", "run", "test", "--prefix=e2e"]

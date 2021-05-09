@@ -6,29 +6,36 @@ interaction, combined with [jest](https://jestjs.io/) as test runner.
 
 ## Installation & usage
 
-The test suite is dockerized. In order to run it:
+The test suite is dockerized, so we could (hypothetically for now) include it in
+CI/CD. In order to run it:
 
 
 Build the container:
 
 ```
-$ docker build . -t e2e-tests
+$ docker build . -f Dockerfile.e2e -t e2e-tests
 ```
 
-Make sure the application is running (I guess it would be better to add it to
-the container as well, but this is fine for now), so in a separate terminal:
+Note: this takes a while to run for the first time, because:
+
+- We start from the stack-build image, which is large (~4GB)
+- We install playwright, which comes with Chromium included
+- We have to install and compile all Haskell dependencies
+
+Run the test suite:
 
 ```
-$ cd ../ && stack run
+$ docker run --rm e2e-tests
 ```
 
-Run the test suite. We add the `--net=host` so we can access the running
-application on our host machine:
+With nix shell, both commands are combined in `nix-shell --run e2e`.
+
+## The non-docker way
+
+Since the dockerized version basically duplicates our local development setup,
+you could just install the test setup locally, which would be faster:
 
 ```
-$ docker run --net=host --rm e2e-tests
+$ npm install --prefix=e2e
+$ npm run test --prefix=e2e
 ```
-
-Note that this way we run the application as-is. In a later stage, we will have
-a few applications in the `app/` directory, which we can use to run specific
-test cases.

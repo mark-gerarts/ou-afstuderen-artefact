@@ -10,4 +10,4 @@ describe('app', () => {
     test('it should display the page', async () => {
         await expect(page).toHaveSelector("#halogen-app");
     });
-})
+});

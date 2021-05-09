@@ -1,0 +1,7 @@
+.stack-work
+.vscode
+e2e/node_modules
+frontend/node_modules
+frontend/.spago
+frontend/.cache
+frontend/_sass
