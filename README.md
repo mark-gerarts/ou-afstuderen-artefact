@@ -97,3 +97,10 @@ get the PureScript IDE extension to work correctly.
 Work in progress. Currently you can do `nix-shell --run build-prod && nix-shell
 --run 'stack run'`, which will launch the application at http://localhost:3000
 with a production frontend build.
+
+## Tests
+
+### End-to-end tests
+
+Refer to the documentation in `e2e/` for more information on running end-to-end
+tests.

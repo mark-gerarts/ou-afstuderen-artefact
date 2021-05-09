@@ -16,15 +16,15 @@ instance decodeJsonTask :: DecodeJson Task where
     taskType <- obj .: "type"
     case taskType of
       "edit" -> do
-        editor <- obj .: "editor" >>= decodeJson
+        editor <- obj .: "editor"
         name <- obj .:? "name" .!= Unnamed
         pure $ Edit name editor
       "pair" -> do
-        t1 <- obj .: "t1" >>= decodeJson
-        t2 <- obj .: "t2" >>= decodeJson
+        t1 <- obj .: "t1"
+        t2 <- obj .: "t2"
         pure $ Pair t1 t2
       "step" -> do
-        task <- obj .: "task" >>= decodeJson
+        task <- obj .: "task"
         pure $ Step task
       _ -> Left (JsonDecodeError.UnexpectedValue (encodeJson taskType))
 
