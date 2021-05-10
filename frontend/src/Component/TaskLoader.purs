@@ -185,9 +185,15 @@ renderInput _ = HH.div_ []
 renderActionButtons :: forall a. Array (HH.HTML a Action)
 renderActionButtons =
   [ HH.button
-      [ css "button is-danger is-outlined", HE.onClick \e -> Reset ]
+      [ css "button is-danger is-outlined"
+      , HP.id "btn-reset"
+      , HE.onClick \e -> Reset
+      ]
       [ HH.text "Reset" ]
   , HH.button
-      [ css "button is-link is-outlined", HE.onClick \e -> LogState ]
+      [ css "button is-link is-outlined"
+      , HP.id "btn-log"
+      , HE.onClick \e -> LogState
+      ]
       [ HH.text "Log state" ]
   ]

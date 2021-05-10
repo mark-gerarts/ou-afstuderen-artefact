@@ -1,0 +1,17 @@
+{
+  "name": "e2e",
+  "version": "0.0.1",
+  "description": "End-to-end test suite",
+  "dependencies": {},
+  "devDependencies": {
+    "expect-playwright": "^0.3.4",
+    "jest": "^26.6.3",
+    "jest-playwright-preset": "^1.5.2",
+    "playwright-chromium": "^1.10.0"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "MIT"
+}

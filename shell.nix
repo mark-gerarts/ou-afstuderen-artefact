@@ -39,6 +39,11 @@ let
     ${nodejs}/bin/npm run build-prod --prefix=frontend
   '';
 
+  e2e = writeScriptBin "e2e" ''
+    ${docker}/bin/docker build . -f Dockerfile.e2e -t e2e-tests
+    ${docker}/bin/docker run --rm -t e2e-tests
+  '';
+
 in mkShell {
 
   nativeBuildInputs = [
@@ -54,6 +59,7 @@ in mkShell {
     serve-both
     build-prod
     css-build-dev
+    e2e
 
     # Backend
     stack
@@ -65,5 +71,8 @@ in mkShell {
     nodejs
     nodePackages.parcel-bundler
     nodePackages.purty
+
+    # Tests
+    docker
   ];
 }
