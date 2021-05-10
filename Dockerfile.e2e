@@ -2,7 +2,7 @@
 # version.
 FROM fpco/stack-build:lts-16.31
 
-# Set up playwright, which is basically the same as the official image:
+# Set up playwright dependencies, which is adapted from the official image:
 # https://github.com/microsoft/playwright/blob/master/utils/docker/Dockerfile.focal
 
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8B1DA6120C2BF624
@@ -26,8 +26,20 @@ COPY stack.yaml.lock stack.yaml package.yaml ./
 
 RUN stack build --only-dependencies
 
-COPY . .
+# Copy everything needed to compile our own project
+COPY app app/
 
+COPY src src/
+
+COPY frontend frontend/
+
+COPY LICENSE README.md ./
+
+# ... and compile it
 RUN stack build
+
+# Then copy everything - basically only the test suite remains. This ensures
+# maximum caching when only the tests are changed.
+COPY . .
 
 CMD ["npm", "run", "test", "--prefix=e2e"]

@@ -7,7 +7,7 @@ module.exports = {
         // @todo: In order to support multiple servers for multiple test
         // applications, we will have to add a configurable port to the stack
         // setup.
-        command: 'stack run',
+        command: 'stack run --cwd=../',
         port: 3000,
         launchTimeout: 10000,
         waitOnScheme: {
