@@ -26,7 +26,7 @@ library
   exposed-modules:
       Application
       Communication
-      Server
+      Visualize
   other-modules:
       Paths_ou_afstuderen_artefact
   hs-source-dirs:
@@ -53,6 +53,7 @@ library
 executable ou-afstuderen-artefact-exe
   main-is: Main.hs
   other-modules:
+      Test.StringUpdate
       Paths_ou_afstuderen_artefact
   hs-source-dirs:
       app

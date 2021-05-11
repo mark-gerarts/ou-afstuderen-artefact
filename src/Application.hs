@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Application (application, initialTask, State (..)) where
+module Application (application, State (..)) where
 
 import Communication (JsonInput (..), JsonTask (..))
 import Data.Aeson (ToJSON)
@@ -22,7 +22,7 @@ import Polysemy.Mutate
   )
 import Polysemy.Supply (Supply, supplyToIO)
 import Servant
-import Task (RealWorld, Task (Pair), select, update, view, (<?>), (>>?))
+import Task (RealWorld, Task)
 import Task.Input (Concrete (..), Dummy, Input (..))
 import Task.Observe (inputs)
 import Task.Run (NotApplicable, Steps, initialise, interact)
@@ -140,15 +140,3 @@ corsPolicy = cors (const <| Just policy)
           corsOrigins = Just (["http://localhost:3001", "http://localhost:3000"], True),
           corsRequestHeaders = ["authorization", "content-type"]
         }
-
--- Some dummy task to showcase all 3 currently supported types working together.
-initialTask :: Task h Text
-initialTask =
-  update ("Hello!" :: Text) >< (update True >< update (1 :: Int)) >>? \(t, (b, i)) ->
-    view
-      <| unwords
-        [ "The left value was \"",
-          t,
-          "\", the right value was",
-          display (b, i)
-        ]
