@@ -20,6 +20,6 @@ describe('view', () => {
     });
 
     test('it should not be editable', async () => {
-        await expect(page).not.toHaveSelector('input');
+        await expect(page).not.toHaveSelector('input', { timeout: 500 });
     });
 });
