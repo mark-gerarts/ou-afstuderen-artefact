@@ -53,7 +53,7 @@ $ stack runghc e2e/task/StringUpdate.hs
 This allows you to check what is going on, and play around with the selectors
 etc that you're using in the tests.
 
-Then run the test suite either directly or using docked, as explained above.
+Then run the test suite either directly or using docker, as explained above.
 
 To create a new test suite:
 

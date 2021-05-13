@@ -54,7 +54,7 @@ case of changes in code/dependencies.
 
 ### Frontend
 
-Compile the CSS just once - we don't intent to make much changes for now.
+Compile the CSS just once - we don't intend to make much changes for now.
 
 ```
 $ npm ci --prefix=frontend
