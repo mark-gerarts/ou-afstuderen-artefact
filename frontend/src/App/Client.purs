@@ -30,7 +30,7 @@ instance showApiError :: Show ApiError where
   show (JsonError err) = show err
 
 baseUri :: String
-baseUri = "http://localhost:3000/"
+baseUri = "/"
 
 endpoint :: String -> String
 endpoint s = baseUri <> s

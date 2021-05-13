@@ -39,3 +39,26 @@ you could just install the test setup locally, which would be faster:
 $ npm install --prefix=e2e
 $ npm run test --prefix=e2e
 ```
+
+## Developing tests
+
+What works easiest for me is:
+
+First, start a local server for the page you're testing:
+
+```
+$ stack runghc e2e/task/StringUpdate.hs
+```
+
+This allows you to check what is going on, and play around with the selectors
+etc that you're using in the tests.
+
+Then run the test suite either directly or using docked, as explained above.
+
+To create a new test suite:
+
+- Create a new test suite: `e2e/src/your-new-test.e2e.js`
+- Create a new task to test: `e2e/task/YourNewTest.hs`
+- Add a new entry to spin up a server in `e2e/jest-playwright.config.js`
+  - Make sure you use a unique port number
+  - Use this port in your test suite

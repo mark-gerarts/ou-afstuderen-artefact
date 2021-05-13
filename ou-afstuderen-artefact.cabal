@@ -53,7 +53,6 @@ library
 executable ou-afstuderen-artefact-exe
   main-is: Main.hs
   other-modules:
-      Test.StringUpdate
       Paths_ou_afstuderen_artefact
   hs-source-dirs:
       app

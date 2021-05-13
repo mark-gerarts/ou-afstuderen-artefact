@@ -23,7 +23,7 @@ let
   '';
 
   serve-ui = writeScriptBin "serve-ui" ''
-    ${nodejs}/bin/npm run build --prefix=frontend && npm run serve --prefix=frontend
+    (cd frontend && spago build && npm run serve)
   '';
 
   serve-both = writeScriptBin "serve-both" ''
@@ -40,7 +40,7 @@ let
   '';
 
   e2e = writeScriptBin "e2e" ''
-    ${docker}/bin/docker build . -f Dockerfile.e2e -t e2e-tests
+    ${docker}/bin/docker build . -f Dockerfile.e2e -t e2e-tests && \
     ${docker}/bin/docker run --rm -t e2e-tests
   '';
 

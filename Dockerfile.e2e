@@ -26,12 +26,20 @@ COPY stack.yaml.lock stack.yaml package.yaml ./
 
 RUN stack build --only-dependencies
 
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+
+RUN npm ci --prefix=frontend
+
 # Copy everything needed to compile our own project
+COPY frontend frontend/
+
+RUN npm run build-prod --prefix=frontend
+
 COPY app app/
 
 COPY src src/
 
-COPY frontend frontend/
+COPY test test/
 
 COPY LICENSE README.md ./
 

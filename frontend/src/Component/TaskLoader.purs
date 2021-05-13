@@ -116,7 +116,9 @@ renderTask task@(Edit name@(Named id) (Update value)) =
             ]
         , HH.div [ css "field is-grouped" ]
             [ HH.div [ css "control" ]
-                [ HH.button [ css "button is-link" ] [ HH.text "Submit" ]
+                [ HH.button
+                    [ css "button is-link btn-update-submit" ]
+                    [ HH.text "Submit" ]
                 ]
             ]
         ]
@@ -143,6 +145,7 @@ renderEditor name (String value) =
     [ css "input"
     , HP.value value
     , HE.onValueInput \s -> UpdateValue name (String s)
+    , HP.type_ HP.InputText
     ]
 
 renderEditor name (Int value) =

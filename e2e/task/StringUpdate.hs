@@ -2,7 +2,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Test.StringUpdate where
+module StringUpdate where
 
 import Task (update)
 import Visualize (visualizeTask)

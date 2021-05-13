@@ -57,6 +57,7 @@ case of changes in code/dependencies.
 Compile the CSS just once - we don't intent to make much changes for now.
 
 ```
+$ npm ci --prefix=frontend
 $ npm run css-build-dev --prefix=frontend
 $ # or
 $ nix-shell --run css-build-dev
