@@ -1,5 +1,5 @@
 // IntUpdate.hs
-describe('string update', () => {
+describe('int update', () => {
     beforeEach(async () => {
         await Promise.all([
             page.goto('http://localhost:3002'),

@@ -1,11 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module IntUpdate where
+module Pair where
 
 import Task (update)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
 main :: IO ()
-main = visualizeTask <| update (42 :: Int)
+main =
+  visualizeTask
+    <| update ("Left" :: Text) >< update ("Right" :: Text)

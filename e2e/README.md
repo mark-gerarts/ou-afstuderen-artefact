@@ -36,7 +36,7 @@ Since the dockerized version basically duplicates our local development setup,
 you could just install the test setup locally, which would be faster:
 
 ```
-$ npm install --prefix=e2e
+$ npm ci --prefix=e2e
 $ npm run test --prefix=e2e
 ```
 
@@ -62,3 +62,9 @@ To create a new test suite:
 - Add a new entry to spin up a server in `e2e/jest-playwright.config.js`
   - Make sure you use a unique port number
   - Use this port in your test suite
+
+The following links are useful when writing tests:
+
+- Interacting with the browser: [Playwright docs](https://playwright.dev/docs/intro)
+- All available matchers (`expect(..)`): [Jest docs](https://jestjs.io/docs/expect)
+- Additional common matchers: [expect-playwright](https://github.com/playwright-community/expect-playwright#expect-playwright)

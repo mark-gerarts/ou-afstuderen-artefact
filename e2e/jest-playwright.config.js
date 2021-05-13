@@ -18,6 +18,9 @@ module.exports = {
     serverOptions: [
         serverConfigForTask('StringUpdate.hs', 3000),
         serverConfigForTask('BooleanUpdate.hs', 3001),
-        serverConfigForTask('IntUpdate.hs', 3002)
+        serverConfigForTask('IntUpdate.hs', 3002),
+        serverConfigForTask('Pair.hs', 3003),
+        serverConfigForTask('Step.hs', 3004),
+        serverConfigForTask('View.hs', 3005)
     ]
 }
