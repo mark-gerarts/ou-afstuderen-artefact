@@ -66,6 +66,10 @@ editorToJSON (View t) =
     [ "type" .= String "view",
       "value" .= t
     ]
+editorToJSON (Enter) =
+  object
+    [ "type" .= String "enter"
+    ]    
 editorToJSON _ = undefined
 
 data JsonInput where
