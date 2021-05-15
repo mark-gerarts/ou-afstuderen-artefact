@@ -169,7 +169,7 @@ renderEditor name (Boolean value) =
         [ css "checkbox"
         , HP.checked value
         , HP.type_ HP.InputCheckbox
-        , HE.onChange \_ -> UpdateValue name (Boolean (not value))
+        , HE.onChange \_ -> UpdateInput name (Boolean (not value))
         ]
     , HH.text "Enabled"
     ]
