@@ -18,10 +18,10 @@ defaultPort = "3000"
 visualizeTask :: ToJSON t => Task RealWorld t -> IO ()
 visualizeTask task = do
   port <- lookupEnv "PORT"
-  let realPort = port ?: defaultPort
-  putStrLn <| "Starting webserver at http://localhost:" <> realPort
+  let realPort = toInt <| port ?: defaultPort
+  putTextLn <| "Starting webserver at http://localhost:" <> display realPort
   app <- initApp task
-  run ((toText >> scan >> fromJust) realPort) app
+  run realPort app
 
 visualizeTaskDevel :: ToJSON t => Task RealWorld t -> IO ()
 visualizeTaskDevel task =
@@ -31,7 +31,7 @@ visualizeTaskDevel task =
     putTextLn <| "Running in development mode on port " <> toText innerPort
     putTextLn <| "But you should connect to port " <> toText displayPort
     app <- initApp task
-    run ((toText >> scan >> fromJust) innerPort) (logStdoutDev app)
+    run (toInt innerPort) (logStdoutDev app)
 
 initApp :: ToJSON t => Task RealWorld t -> IO Application
 initApp task = do
@@ -56,3 +56,6 @@ watchTermFile =
         else do
           threadDelay 100000
           loop
+
+toInt :: ToText a => a -> Int
+toInt = toText >> scan >> fromJust
