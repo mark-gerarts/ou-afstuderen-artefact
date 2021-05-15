@@ -134,6 +134,10 @@ renderTask task@(Edit name@(Named id) (View value)) inputs =
   Bulma.panel ("Update Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
+renderTask task@(Edit name@(Named id) Enter) inputs =
+  Bulma.panel ("Enter Task [" <> show name <> "]")
+    (HH.p_ [ HH.text $ ("A Enter-task.... under construction. ")])    
+
 renderTask (Edit Unnamed _) inputs = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
 renderTask (Pair t1 t2) inputs =

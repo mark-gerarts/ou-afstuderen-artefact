@@ -38,10 +38,12 @@ instance showTask :: Show Task where
 data Editor
   = Update Value
   | View Value
+  | Enter
 
 instance showEditor :: Show Editor where
   show (Update x) = "Update " <> show x
   show (View x) = "View " <> show x
+  show (Enter) = "Enter "
 
 instance decodeJsonEditor :: DecodeJson Editor where
   decodeJson json = do
@@ -54,6 +56,8 @@ instance decodeJsonEditor :: DecodeJson Editor where
       "view" -> do
         value <- obj .: "value"
         pure $ View value
+      "enter" -> do
+        pure $ Enter
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name
