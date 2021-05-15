@@ -2,7 +2,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import "tophat" Task (Task, update, view, (>>?), enter)
+import "tophat" Task (Task, update, view, (>>?))
 import "ou-afstuderen-artefact" Visualize (visualizeTaskDevel)
 import "tophat" Prelude
 
@@ -13,7 +13,7 @@ main = visualizeTaskDevel initialTask
 -- Some dummy task to showcase all 3 currently supported types working together.
 initialTask :: Task h Text
 initialTask =
-  enter >< (update True >< update (1 :: Int)) >>? \(t, (b, i)) ->
+  update ("Hello!" :: Text) >< (update True >< update (1 :: Int)) >>? \(t, (b, i)) ->
     view
       <| unwords
         [ "The left value was \"",

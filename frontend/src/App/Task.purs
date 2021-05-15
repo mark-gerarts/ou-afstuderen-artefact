@@ -4,6 +4,8 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
 import Data.Either (Either(..))
+import Data.Maybe (Maybe, fromMaybe)
+import Data.Array (filter, head)
 
 data Task
   = Edit Name Editor
@@ -143,21 +145,25 @@ isOption (Insert _ _) = false
 
 isOption (Option _ _) = true
 
--- @todo: rework the frontend so this updating is no longer necessary. Input
--- should just be sent to the backend straight away.
-updateTask :: Name -> Value -> Task -> Task
-updateTask name newValue task@(Edit name' editor)
-  | name == name' = Edit name (setValue editor newValue)
-  | otherwise = task
+-- Select and update input
 
-updateTask id newValue (Pair t1 t2) =
-  Pair
-    (updateTask id newValue t1)
-    (updateTask id newValue t2)
+isSelectedInput :: Int -> Input -> Boolean
+isSelectedInput id' (Insert id _) 
+ | id == id' = true
+ | otherwise = false
+isSelectedInput id' (Option _ _) = false
 
-updateTask id newValue (Step t) = Step (updateTask id newValue t)
+filterInputs:: Int -> Array Input -> Maybe Input
+filterInputs id inputs = head $ filter (isSelectedInput id) inputs
 
-setValue :: Editor -> Value -> Editor
-setValue (Update _) value = Update value
+selectInput:: Int -> Array Input -> Input
+selectInput id inputs = fromMaybe (Insert 0 (String "hoi")) $ (filterInputs id inputs)
 
-setValue editor value = editor
+updateInput :: Name -> Value -> Input -> Input
+updateInput name@(Named id) newValue input@(Insert name' value)
+  | id == name' = Insert id newValue
+  | otherwise = input
+
+updateInput name newValue input@(Option name' value) = input
+
+updateInput name@(Unnamed) newValue input = input

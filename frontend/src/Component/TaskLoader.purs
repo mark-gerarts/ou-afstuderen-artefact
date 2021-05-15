@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), Name(..), Task(..), Value(..), isOption, updateTask)
+import App.Task (Editor(..), Input(..), Name(..), Task(..), Value(..), isOption, updateInput, selectInput)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Array (filter)
@@ -28,7 +28,7 @@ type State
 
 data Action
   = FetchInitialTask
-  | UpdateValue Name Value
+  | UpdateInput Name Value
   | Interact Input Event
   | LogState -- For debug purposes...
   | Reset
@@ -70,8 +70,8 @@ handleAction (Interact input event) = do
   taskResp <- H.liftAff $ interact input
   setFromTaskResponse taskResp
 
-handleAction (UpdateValue id x) = do
-  H.modify_ \s -> s { currentTask = (updateTask id x) <$> s.currentTask }
+handleAction (UpdateInput id x) = do
+  H.modify_ \s -> s { possibleInputs = (updateInput id x) <$> s.possibleInputs }  
 
 setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
 setFromTaskResponse taskResp = case taskResp of
@@ -102,49 +102,55 @@ renderError = HH.p_ [ HH.text "An error occurred :(" ]
 renderTaskWithInputs :: forall a. Task -> Array Input -> HH.HTML a Action
 renderTaskWithInputs task inputs =
   HH.div_
-    [ renderTask task, renderInputs inputs ]
+    [ renderTask task inputs, renderInputs inputs ]
 
-renderTask :: forall a. Task -> HH.HTML a Action
-renderTask task@(Edit name@(Named id) (Update value)) =
-  Bulma.panel ("Update Task [" <> show name <> "]")
-    ( HH.form
-        [ HE.onSubmit \e -> Interact (Insert id value) e, css "control" ]
-        [ HH.div [ css "field" ]
-            [ HH.label_ [ HH.text "Value" ]
-            , HH.div [ css "control" ]
-                [ renderEditor name value ]
-            ]
-        , HH.div [ css "field is-grouped" ]
-            [ HH.div [ css "control" ]
-                [ HH.button
-                    [ css "button is-link btn-update-submit" ]
-                    [ HH.text "Submit" ]
-                ]
-            ]
-        ]
-    )
+renderTask :: forall a. Task -> Array Input -> HH.HTML a Action
+renderTask task@(Edit name@(Named id) (Update value)) inputs =
+  let
+    inputWanted:: Value
+    inputWanted = case selectInput id inputs of
+      Insert id' value' -> value'
+      Option _ _ -> String "Should not be possible?"
+  in  
+    Bulma.panel ("Update Task [" <> show name <> "]")
+      ( HH.form
+          [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
+          [ HH.div [ css "field" ]
+              [ HH.label_ [ HH.text ("Value: " <> show value)]
+              , HH.div [ css "control" ]
+                  [ renderEditor name value ]
+              ]
+          , HH.div [ css "field is-grouped" ]
+              [ HH.div [ css "control" ]
+                  [ HH.button
+                      [ css "button is-link btn-update-submit" ]
+                      [ HH.text "Submit" ]
+                  ]
+              ]
+          ]
+      )
 
-renderTask task@(Edit name@(Named id) (View value)) =
+renderTask task@(Edit name@(Named id) (View value)) inputs =
   Bulma.panel ("Update Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
-renderTask (Edit Unnamed _) = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
+renderTask (Edit Unnamed _) inputs = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
-renderTask (Pair t1 t2) =
+renderTask (Pair t1 t2) inputs =
   HH.div
     [ css "columns" ]
-    [ HH.div [ css "column" ] [ renderTask t1 ]
-    , HH.div [ css "column" ] [ renderTask t2 ]
+    [ HH.div [ css "column" ] [ renderTask t1 inputs ]
+    , HH.div [ css "column" ] [ renderTask t2 inputs ]
     ]
 
-renderTask (Step t) = renderTask t
+renderTask (Step t) inputs = renderTask t inputs
 
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
   HH.input
     [ css "input"
     , HP.value value
-    , HE.onValueInput \s -> UpdateValue name (String s)
+    , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
 
@@ -152,7 +158,7 @@ renderEditor name (Int value) =
   HH.input
     [ css "input"
     , HP.value $ show value
-    , HE.onValueInput \s -> UpdateValue name (Int $ unsafePartial $ fromJust $ fromString s)
+    , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
 
@@ -163,7 +169,7 @@ renderEditor name (Boolean value) =
         [ css "checkbox"
         , HP.checked value
         , HP.type_ HP.InputCheckbox
-        , HE.onChange \e -> UpdateValue name (Boolean (not value))
+        , HE.onChange \e -> UpdateInput name (Boolean (not value))
         ]
     , HH.text "Enabled"
     ]
