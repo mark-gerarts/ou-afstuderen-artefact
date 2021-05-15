@@ -35,12 +35,16 @@ library
       aeson
     , async
     , base-noprelude >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , http-media
     , http-types
     , polysemy >=1.5.0 && <2
     , scientific
+    , servant
     , servant-server
+    , text
     , tophat
     , unordered-containers
     , wai
@@ -61,13 +65,17 @@ executable ou-afstuderen-artefact-exe
       aeson
     , async
     , base-noprelude >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , http-media
     , http-types
     , ou-afstuderen-artefact
     , polysemy >=1.5.0 && <2
     , scientific
+    , servant
     , servant-server
+    , text
     , tophat
     , unordered-containers
     , wai
@@ -89,13 +97,17 @@ test-suite ou-afstuderen-artefact-test
       aeson
     , async
     , base-noprelude >=4.7 && <5
+    , bytestring
     , containers
     , directory
+    , http-media
     , http-types
     , ou-afstuderen-artefact
     , polysemy >=1.5.0 && <2
     , scientific
+    , servant
     , servant-server
+    , text
     , tophat
     , unordered-containers
     , wai

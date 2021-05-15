@@ -163,7 +163,7 @@ renderEditor name (Boolean value) =
         [ css "checkbox"
         , HP.checked value
         , HP.type_ HP.InputCheckbox
-        , HE.onChange \e -> UpdateValue name (Boolean (not value))
+        , HE.onChange \_ -> UpdateValue name (Boolean (not value))
         ]
     , HH.text "Enabled"
     ]
@@ -190,13 +190,13 @@ renderActionButtons =
   [ HH.button
       [ css "button is-danger is-outlined"
       , HP.id "btn-reset"
-      , HE.onClick \e -> Reset
+      , HE.onClick \_ -> Reset
       ]
       [ HH.text "Reset" ]
   , HH.button
       [ css "button is-link is-outlined"
       , HP.id "btn-log"
-      , HE.onClick \e -> LogState
+      , HE.onClick \_ -> LogState
       ]
       [ HH.text "Log state" ]
   ]

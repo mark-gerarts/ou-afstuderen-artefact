@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -7,8 +8,10 @@ module Application (application, State (..)) where
 
 import Communication (JsonInput (..), JsonTask (..))
 import Data.Aeson (ToJSON)
+import qualified Data.ByteString.Lazy as BS
+import Data.Text (replace)
+import Network.HTTP.Media ((//), (/:))
 import Network.Wai (Middleware)
-import Network.Wai.Application.Static (defaultWebAppSettings, ssIndices)
 import Network.Wai.Middleware.Cors
 import Polysemy (Embed, Sem, runM)
 import Polysemy.Log (Log, logToIO)
@@ -26,7 +29,6 @@ import Task (RealWorld, Task)
 import Task.Input (Concrete (..), Dummy, Input (..))
 import Task.Observe (inputs)
 import Task.Run (NotApplicable, Steps, initialise, interact)
-import WaiAppStatic.Types (unsafeToPiece)
 
 data State h t = State
   { currentTask :: TVar (Task RealWorld t),
@@ -39,11 +41,22 @@ type TaskAPI =
     :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
     :<|> "reset" :> Get '[JSON] JsonTask
 
-type StaticAPI = Raw
+type StaticAPI = Get '[HTML] RawHtml :<|> Raw
 
 type API = TaskAPI :<|> StaticAPI
 
 type AppM h t = ReaderT (State h t) Handler
+
+-- We define a custom HTML type so we can render the index.html file.
+data HTML = HTML
+
+instance Accept HTML where
+  contentType _ = "text" // "html" /: ("charset", "utf-8")
+
+newtype RawHtml = RawHtml {unRaw :: BS.ByteString}
+
+instance MimeRender HTML RawHtml where
+  mimeRender _ = unRaw
 
 server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
@@ -91,13 +104,22 @@ server _ = taskServer :<|> staticServer
         return (JsonTask initialisedTask possibleInputs)
 
     staticServer :: ServerT StaticAPI (AppM h t)
-    staticServer =
-      -- serveDirectoryWebAbb does not automatically use index.html when
-      -- visiting /, so we use the default webApp settings, but override the
-      -- fallback.
-      let defaultSettings = defaultWebAppSettings "frontend/prod"
-          indexFallback = map unsafeToPiece ["index.html"]
-       in serveDirectoryWith <| defaultSettings {ssIndices = indexFallback}
+    staticServer = indexHandler :<|> assetsHandler
+
+    -- Serves the main entrypoint of the application. We remove the "dev-mode"
+    -- property to indicate to the frontend that the file is served from the
+    -- backend directly (when developing, the frontend is served using Parcel).
+    indexHandler :: AppM h t RawHtml
+    indexHandler = do
+      fmap RawHtml <| liftIO <| do
+        htmlFile <- BS.readFile "frontend/prod/index.html"
+        let htmlFileString = decodeUtf8 @Text @BS.ByteString htmlFile
+            replacedFile = replace "dev-mode" "" htmlFileString
+        return <| encodeUtf8 replacedFile
+
+    -- Serves all static assets (CSS, JS, ...)
+    assetsHandler :: Tagged (AppM h t) Application
+    assetsHandler = serveDirectoryWebApp "frontend/prod"
 
 interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
 interactIO i t = withIO <| interact i t

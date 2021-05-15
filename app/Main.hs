@@ -1,6 +1,6 @@
 module Main where
 
-import Task (Task, update, view, (>>?))
+import Task (Task, enter, update, view, (>>?))
 import Visualize (visualizeTask)
 
 main :: IO ()

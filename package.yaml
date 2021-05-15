@@ -30,6 +30,10 @@ dependencies:
 - containers
 - unordered-containers
 - servant-server
+- servant
+- http-media
+- bytestring
+- text
 - aeson
 - wai-app-static
 - wai-cors
