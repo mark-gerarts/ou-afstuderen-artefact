@@ -81,7 +81,8 @@ setFromTaskResponse taskResp = case taskResp of
       s
         { currentTask = Just task
         , possibleInputs = inputs
-        }
+        } 
+
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
@@ -111,6 +112,7 @@ renderTask task@(Edit name@(Named id) (Update value)) inputs =
     inputWanted = case selectInput id inputs of
       Insert id' value' -> value'
       Option _ _ -> String "Should not be possible?"
+        
   in  
     Bulma.panel ("Update Task [" <> show name <> "]")
       ( HH.form
@@ -118,7 +120,7 @@ renderTask task@(Edit name@(Named id) (Update value)) inputs =
           [ HH.div [ css "field" ]
               [ HH.label_ [ HH.text ("Value: " <> show value)]
               , HH.div [ css "control" ]
-                  [ renderEditor name value ]
+                  [ renderEditor name value  ]
               ]
           , HH.div [ css "field is-grouped" ]
               [ HH.div [ css "control" ]
@@ -135,8 +137,45 @@ renderTask task@(Edit name@(Named id) (View value)) inputs =
     (HH.p_ [ HH.text $ show value ])
 
 renderTask task@(Edit name@(Named id) Enter) inputs =
+  let
+    inputWanted:: Value
+    inputWanted = case selectInput id inputs of
+      Insert id' value' -> value'
+      Option _ _ -> String "Should not be possible?"  
+
+    typeOfEditor = case inputWanted of
+      -- Initial Values: right type, dummy values
+      String "<Text>" -> String "dummy"
+      String "<Int>" ->  Int 1
+      String "<Bool>" -> Boolean false
+
+      -- Input values are changed after onValueInput or onChange, so we need this code to render new editors of the corresponding types.
+      -- @todo Is it only about the type, not about value (see definition of renderEnterEditor). Is it better to add a case to HH.div and select renderEditor in the cases belows?
+      String value -> String value
+      Int value ->  Int value
+      Boolean value -> Boolean value
+      
+      -- In other (theoretical) cases.
+      otherwise -> String "should not be possible?"     
+  in 
+
   Bulma.panel ("Enter Task [" <> show name <> "]")
-    (HH.p_ [ HH.text $ ("A Enter-task.... under construction. ")])    
+      ( HH.form
+          [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
+          [ HH.div [ css "field" ]
+              [ HH.label_ [ HH.text ("Value: ")]
+              , HH.div [ css "control" ]
+                  [ renderEditor name typeOfEditor  ]
+              ]
+          , HH.div [ css "field is-grouped" ]
+              [ HH.div [ css "control" ]
+                  [ HH.button
+                      [ css "button is-link btn-update-submit" ]
+                      [ HH.text "Submit" ]
+                  ]
+              ]
+          ]
+      )
 
 renderTask (Edit Unnamed _) inputs = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
@@ -153,15 +192,13 @@ renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
   HH.input
     [ css "input"
-    , HP.value value
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
 
-renderEditor name (Int value) =
+renderEditor name (Int _) =
   HH.input
     [ css "input"
-    , HP.value $ show value
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
