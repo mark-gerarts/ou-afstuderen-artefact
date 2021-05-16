@@ -66,7 +66,6 @@ handleAction LogState = H.get >>= logShow
 
 handleAction (Interact input event) = do
   H.liftEffect $ Event.preventDefault event
-  s <- H.get
   taskResp <- H.liftAff $ interact input
   setFromTaskResponse taskResp
 
@@ -106,11 +105,11 @@ renderTaskWithInputs task inputs =
     [ renderTask task inputs, renderInputs inputs ]
 
 renderTask :: forall a. Task -> Array Input -> HH.HTML a Action
-renderTask task@(Edit name@(Named id) (Update value)) inputs =
+renderTask (Edit name@(Named id) (Update value)) inputs =
   let
     inputWanted:: Value
     inputWanted = case selectInput id inputs of
-      Insert id' value' -> value'
+      Insert _ value' -> value'
       Option _ _ -> String "Should not be possible?"
         
   in  
@@ -132,15 +131,15 @@ renderTask task@(Edit name@(Named id) (Update value)) inputs =
           ]
       )
 
-renderTask task@(Edit name@(Named id) (View value)) inputs =
+renderTask (Edit name (View value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
-renderTask task@(Edit name@(Named id) Enter) inputs =
+renderTask (Edit name@(Named id) Enter) inputs =
   let
     inputWanted:: Value
     inputWanted = case selectInput id inputs of
-      Insert id' value' -> value'
+      Insert _ value' -> value'
       Option _ _ -> String "Should not be possible?"  
 
     typeOfEditor = case inputWanted of
@@ -150,15 +149,11 @@ renderTask task@(Edit name@(Named id) Enter) inputs =
       String "<Bool>" -> Boolean false
 
       -- Input values are changed after onValueInput or onChange, so we need this code to render new editors of the corresponding types.
-      -- @todo Is it only about the type, not about value (see definition of renderEnterEditor). Is it better to add a case to HH.div and select renderEditor in the cases belows?
-      String value -> String value
-      Int value ->  Int value
-      Boolean value -> Boolean value
-      
-      -- In other (theoretical) cases.
-      otherwise -> String "should not be possible?"     
+      -- value is dummy
+      String _ -> String "dummy"
+      Int _ ->  Int 1
+      Boolean _ -> Boolean false    
   in 
-
   Bulma.panel ("Enter Task [" <> show name <> "]")
       ( HH.form
           [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
@@ -177,7 +172,7 @@ renderTask task@(Edit name@(Named id) Enter) inputs =
           ]
       )
 
-renderTask (Edit Unnamed _) inputs = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
+renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
 renderTask (Pair t1 t2) inputs =
   HH.div
@@ -189,9 +184,10 @@ renderTask (Pair t1 t2) inputs =
 renderTask (Step t) inputs = renderTask t inputs
 
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
-renderEditor name (String value) =
+renderEditor name (String _) =
   HH.input
     [ css "input"
+    , HP.value "<Text>"  
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
@@ -203,17 +199,36 @@ renderEditor name (Int _) =
     , HP.type_ HP.InputNumber
     ]
 
-renderEditor name (Boolean value) =
-  HH.label
-    [ css "checkbox" ]
-    [ HH.input
-        [ css "checkbox"
-        , HP.checked value
-        , HP.type_ HP.InputCheckbox
-        , HE.onChange \_ -> UpdateInput name (Boolean (not value))
+renderEditor name (Boolean _) =
+  HH.div
+    [css "rows"]
+      [HH.div [css "row"] [  
+        HH.label
+          [ css "checkbox" ]
+          [ HH.input
+              [ css "checkbox"
+              , HP.type_ HP.InputRadio
+              , HP.checked false              
+              , HP.name "radiobuttonTrueFalse"
+              , HE.onChange \_ -> UpdateInput name (Boolean (false))
+              ]
+          , HH.text "false"
+          ]
+      ]
+      , HH.div [css "row"] [  
+        HH.label
+          [ css "checkbox" ]
+          [ HH.input
+              [ css "checkbox"
+              , HP.type_ HP.InputRadio
+              , HP.checked false
+              , HP.name "radiobuttonTrueFalse"
+              , HE.onChange \_ -> UpdateInput name (Boolean (true))
+              ]
+          , HH.text "true"
+          ]
         ]
-    , HH.text "Enabled"
-    ]
+      ]
 
 renderInputs :: forall a. Array Input -> HH.HTML a Action
 renderInputs inputs =
