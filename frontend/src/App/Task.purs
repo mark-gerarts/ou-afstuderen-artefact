@@ -1,11 +1,12 @@
 module App.Task where
 
 import Prelude
+
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
+import Data.Array (filter, head, insert)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromMaybe)
-import Data.Array (filter, head)
 
 data Task
   = Edit Name Editor
@@ -129,7 +130,55 @@ instance encodeInput :: EncodeJson Input where
       := label
       ~> jsonEmptyObject
 
-instance decodeJsonInput :: DecodeJson Input where
+instance eqInput :: Eq Input where
+  eq (Insert id1 _) (Insert id2 _) = eq id1 id2
+  eq (Option id1 _) (Option id2 _) = eq id1 id2
+  eq (Insert _ _) (Option _ _ ) = false
+  eq (Option _ _) (Insert _ _) = false
+
+instance ordInput :: Ord Input where
+  compare (Insert id1 _) (Insert id2 _) = compare id1 id2
+  compare (Option (Named id1) _) (Option (Named id2) _) = compare id1 id2
+  compare (Option _ _) (Option _ _) = LT
+  compare (Insert _ _) (Option _ _ ) = LT
+  compare (Option _ _) (Insert _ _) = GT
+
+taskToArray:: Task -> Array Input -> Array Input
+taskToArray (Edit (Named id) (Update value)) array = insert (Insert id value) array
+taskToArray (Edit _ (View _)) _ = []
+taskToArray (Edit (Named id) Enter)  array = insert (Insert id (String "")) array
+taskToArray (Edit Unnamed _) _ = []
+taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
+taskToArray (Step t) array = taskToArray t array
+
+isSelectedInput :: Int -> Input -> Boolean
+isSelectedInput id' (Insert id _) 
+ | id == id' = true
+ | otherwise = false
+isSelectedInput _ (Option _ _) = false
+
+filterInputs:: Int -> Array Input -> Maybe Input
+filterInputs id inputs = head $ filter (isSelectedInput id) inputs
+
+selectInput:: Int -> Array Input -> Input
+selectInput id inputs = fromMaybe (Insert 0 (String "")) $ (filterInputs id inputs)
+
+updateInput :: Name -> Value -> Input -> Input
+updateInput (Named id) newValue input@(Insert name' _)
+  | id == name' = Insert id newValue
+  | otherwise = input
+updateInput _ _ input@(Option _ _) = input
+updateInput (Unnamed) _ input = input
+
+data InputDescription
+  = InsertDescription Int String
+  | OptionDescription Name String
+
+instance showInputDescription :: Show InputDescription where
+  show (InsertDescription id x) = "Insert [" <> show x <> "] [" <> show id <> "]"
+  show (OptionDescription name label) = "Option [" <> label <> "] [" <> show name <> "]"
+
+instance decodeJsonInputDescription :: DecodeJson InputDescription where
   decodeJson json = do
     obj <- decodeJson json
     inputType <- obj .: "type"
@@ -137,37 +186,26 @@ instance decodeJsonInput :: DecodeJson Input where
       "insert" -> do
         value <- obj .: "value"
         id <- obj .: "id"
-        pure $ Insert id value
+        pure $ InsertDescription id value
       "option" -> do
         label <- obj .: "label"
         name <- obj .:? "name" .!= Unnamed
-        pure $ Option name label
+        pure $ OptionDescription name label
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
-isOption :: Input -> Boolean
-isOption (Insert _ _) = false
+isOption :: InputDescription -> Boolean
+isOption (InsertDescription _ _) = false
+isOption (OptionDescription _ _) = true
 
-isOption (Option _ _) = true
-
--- Select and update input
-
-isSelectedInput :: Int -> Input -> Boolean
-isSelectedInput id' (Insert id _) 
+-- Select and update inputDescription
+isSelectedInputDescription :: Int -> InputDescription -> Boolean
+isSelectedInputDescription id' (InsertDescription id _) 
  | id == id' = true
  | otherwise = false
-isSelectedInput id' (Option _ _) = false
+isSelectedInputDescription _ (OptionDescription _ _) = false
 
-filterInputs:: Int -> Array Input -> Maybe Input
-filterInputs id inputs = head $ filter (isSelectedInput id) inputs
+filterInputsDescription:: Int -> Array InputDescription -> Maybe InputDescription
+filterInputsDescription id inputs = head $ filter (isSelectedInputDescription id) inputs
 
-selectInput:: Int -> Array Input -> Input
-selectInput id inputs = fromMaybe (Insert 0 (String "hoi")) $ (filterInputs id inputs)
-
-updateInput :: Name -> Value -> Input -> Input
-updateInput name@(Named id) newValue input@(Insert name' value)
-  | id == name' = Insert id newValue
-  | otherwise = input
-
-updateInput name newValue input@(Option name' value) = input
-
-updateInput name@(Unnamed) newValue input = input
+selectInputDescription:: Int -> Array InputDescription -> InputDescription
+selectInputDescription id inputs = fromMaybe (InsertDescription 0 "") $ (filterInputsDescription id inputs)

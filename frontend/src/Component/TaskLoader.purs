@@ -1,8 +1,9 @@
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
+
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), Name(..), Task(..), Value(..), isOption, updateInput, selectInput)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, selectInput, taskToArray, updateInput, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Array (filter)
@@ -24,6 +25,7 @@ type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
     , possibleInputs :: Array Input
+    , inputDescriptions :: Array InputDescription
     }
 
 data Action
@@ -50,6 +52,7 @@ taskLoader =
     { isLoading: true
     , currentTask: Nothing
     , possibleInputs: []
+    , inputDescriptions: []
     }
 
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
@@ -79,14 +82,15 @@ setFromTaskResponse taskResp = case taskResp of
     H.modify_ \s ->
       s
         { currentTask = Just task
-        , possibleInputs = inputs
+        , possibleInputs = taskToArray task []
+        , inputDescriptions = inputs
         } 
 
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
-  { currentTask: Just task, possibleInputs: inputs } -> renderTaskWithInputs task inputs
+  { currentTask: Just task, possibleInputs: possibleInputs, inputDescriptions: inputDescriptions } -> renderTaskWithInputs task possibleInputs inputDescriptions
   _ -> renderError
 
 renderLoadingScreen :: forall a. HH.HTML a Action
@@ -99,16 +103,16 @@ renderLoadingScreen =
 renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
-renderTaskWithInputs :: forall a. Task -> Array Input -> HH.HTML a Action
-renderTaskWithInputs task inputs =
+renderTaskWithInputs :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
+renderTaskWithInputs task possibleInputs inputDescriptions =
   HH.div_
-    [ renderTask task inputs, renderInputs inputs ]
+    [ renderTask task possibleInputs inputDescriptions, renderInputs inputDescriptions ]
 
-renderTask :: forall a. Task -> Array Input -> HH.HTML a Action
-renderTask (Edit name@(Named id) (Update value)) inputs =
+renderTask :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
+renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
   let
     inputWanted:: Value
-    inputWanted = case selectInput id inputs of
+    inputWanted = case selectInput id possibleInputs of
       Insert _ value' -> value'
       Option _ _ -> String "Should not be possible?"
         
@@ -117,7 +121,7 @@ renderTask (Edit name@(Named id) (Update value)) inputs =
       ( HH.form
           [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
           [ HH.div [ css "field" ]
-              [ HH.label_ [ HH.text ("Value: " <> show value)]
+              [ HH.label_ [ HH.text ("Value: ")]
               , HH.div [ css "control" ]
                   [ renderEditor name value  ]
               ]
@@ -131,28 +135,29 @@ renderTask (Edit name@(Named id) (Update value)) inputs =
           ]
       )
 
-renderTask (Edit name (View value)) _ =
+renderTask (Edit name (View value)) _ _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
-renderTask (Edit name@(Named id) Enter) inputs =
+renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
   let
     inputWanted:: Value
-    inputWanted = case selectInput id inputs of
-      Insert _ value' -> value'
+    inputWanted = case selectInput id possibleInputs of
+      Insert _ value -> value
       Option _ _ -> String "Should not be possible?"  
 
-    typeOfEditor = case inputWanted of
-      -- Initial Values: right type, dummy values
-      String "<Text>" -> String "dummy"
-      String "<Int>" ->  Int 1
-      String "<Bool>" -> Boolean false
+    inputDescriptionWanted:: String
+    inputDescriptionWanted = case selectInputDescription id inputDescriptions of
+      InsertDescription _ value -> value
+      OptionDescription _ _ -> "Should not be possible?" 
 
-      -- Input values are changed after onValueInput or onChange, so we need this code to render new editors of the corresponding types.
-      -- value is dummy
-      String _ -> String "dummy"
-      Int _ ->  Int 1
-      Boolean _ -> Boolean false    
+    typeOfEditor:: Value    
+    typeOfEditor = case inputDescriptionWanted of
+      -- Initial Values: right type, dummy values
+      "<Text>" -> String ""
+      "<Int>" ->  Int 0
+      "<Bool>" -> Boolean false
+      otherwise -> String "should not be possible?"
   in 
   Bulma.panel ("Enter Task [" <> show name <> "]")
       ( HH.form
@@ -160,7 +165,7 @@ renderTask (Edit name@(Named id) Enter) inputs =
           [ HH.div [ css "field" ]
               [ HH.label_ [ HH.text ("Value: ")]
               , HH.div [ css "control" ]
-                  [ renderEditor name typeOfEditor  ]
+                  [ renderEditorEnter name typeOfEditor  ]
               ]
           , HH.div [ css "field is-grouped" ]
               [ HH.div [ css "control" ]
@@ -172,34 +177,35 @@ renderTask (Edit name@(Named id) Enter) inputs =
           ]
       )
 
-renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
+renderTask (Edit Unnamed _) _ _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
-renderTask (Pair t1 t2) inputs =
+renderTask (Pair t1 t2) possibleInputs inputDescriptions =
   HH.div
     [ css "columns" ]
-    [ HH.div [ css "column" ] [ renderTask t1 inputs ]
-    , HH.div [ css "column" ] [ renderTask t2 inputs ]
+    [ HH.div [ css "column" ] [ renderTask t1 possibleInputs inputDescriptions ]
+    , HH.div [ css "column" ] [ renderTask t2 possibleInputs inputDescriptions ]
     ]
 
-renderTask (Step t) inputs = renderTask t inputs
+renderTask (Step t) possibleInputs inputDescriptions = renderTask t possibleInputs inputDescriptions
 
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
-renderEditor name (String _) =
+renderEditor name (String value) =
   HH.input
     [ css "input"
-    , HP.value "<Text>"  
+    , HP.value value
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
 
-renderEditor name (Int _) =
+renderEditor name (Int value) =
   HH.input
     [ css "input"
+    , HP.value (show value)  
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
 
-renderEditor name (Boolean _) =
+renderEditor name (Boolean value) =
   HH.div
     [css "rows"]
       [HH.div [css "row"] [  
@@ -208,7 +214,7 @@ renderEditor name (Boolean _) =
           [ HH.input
               [ css "checkbox"
               , HP.type_ HP.InputRadio
-              , HP.checked false              
+              , HP.checked (not value)              
               , HP.name "radiobuttonTrueFalse"
               , HE.onChange \_ -> UpdateInput name (Boolean (false))
               ]
@@ -221,7 +227,7 @@ renderEditor name (Boolean _) =
           [ HH.input
               [ css "checkbox"
               , HP.type_ HP.InputRadio
-              , HP.checked false
+              , HP.checked value
               , HP.name "radiobuttonTrueFalse"
               , HE.onChange \_ -> UpdateInput name (Boolean (true))
               ]
@@ -230,17 +236,61 @@ renderEditor name (Boolean _) =
         ]
       ]
 
-renderInputs :: forall a. Array Input -> HH.HTML a Action
-renderInputs inputs =
+renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
+renderEditorEnter name (String _) =
+  HH.input
+    [ css "input"
+    , HE.onValueInput \s -> UpdateInput name (String s)
+    , HP.type_ HP.InputText
+    ]
+
+renderEditorEnter name (Int _) =
+  HH.input
+    [ css "input"
+    , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
+    , HP.type_ HP.InputNumber
+    ]
+
+renderEditorEnter name (Boolean _) =
+  HH.div
+    [css "rows"]
+      [HH.div [css "row"] [  
+        HH.label
+          [ css "checkbox" ]
+          [ HH.input
+              [ css "checkbox"
+              , HP.type_ HP.InputRadio       
+              , HP.name "radiobuttonTrueFalse"
+              , HE.onChange \_ -> UpdateInput name (Boolean (false))
+              ]
+          , HH.text "false"
+          ]
+      ]
+      , HH.div [css "row"] [  
+        HH.label
+          [ css "checkbox" ]
+          [ HH.input
+              [ css "checkbox"
+              , HP.type_ HP.InputRadio
+              , HP.name "radiobuttonTrueFalse"
+              , HE.onChange \_ -> UpdateInput name (Boolean (true))
+              ]
+          , HH.text "true"
+          ]
+        ]
+      ]
+
+renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
+renderInputs inputDescriptions =
   let
-    options = filter isOption inputs
+    options = filter isOption inputDescriptions
 
     buttons = renderActionButtons <> map renderInput options
   in
     HH.div [ css "buttons is-right" ] buttons
 
-renderInput :: forall a. Input -> HH.HTML a Action
-renderInput (Option name label) =
+renderInput :: forall a. InputDescription -> HH.HTML a Action
+renderInput (OptionDescription name label) =
   HH.button
     [ css "button is-primary", HE.onClick \e -> Interact (Option name label) (toEvent e) ]
     [ HH.text label ]

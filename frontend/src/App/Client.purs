@@ -4,7 +4,7 @@ import Prelude
 import Affjax as AX
 import Affjax.RequestBody as AXRB
 import Affjax.ResponseFormat as AXRF
-import App.Task (Input, Task)
+import App.Task (Input, InputDescription, Task)
 import Data.Argonaut (class DecodeJson, JsonDecodeError, decodeJson, encodeJson, (.:))
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
@@ -21,7 +21,7 @@ data ApiError
   | JsonError JsonDecodeError
 
 data TaskResponse
-  = TaskResponse Task (Array Input)
+  = TaskResponse Task (Array InputDescription)
 
 instance decodeJsonTaskResponse :: DecodeJson TaskResponse where
   decodeJson json = do
