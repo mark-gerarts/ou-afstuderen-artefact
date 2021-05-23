@@ -215,8 +215,8 @@ renderEditor name (Int value) =
 
 renderEditor name (Boolean value) =
   HH.div
-    [css "rows"]
-      [HH.div [css "row"] [  
+    []
+      [HH.div [] [  
         HH.label
           [ css "checkbox" ]
           [ HH.input
@@ -229,7 +229,7 @@ renderEditor name (Boolean value) =
           , HH.text "false"
           ]
       ]
-      , HH.div [css "row"] [  
+      , HH.div [] [  
         HH.label
           [ css "checkbox" ]
           [ HH.input
@@ -261,8 +261,8 @@ renderEditorEnter name (Int _) =
 
 renderEditorEnter name (Boolean _) =
   HH.div
-    [css "rows"]
-      [HH.div [css "row"] [  
+    []
+      [HH.div [] [  
         HH.label
           [ css "checkbox" ]
           [ HH.input
@@ -274,7 +274,7 @@ renderEditorEnter name (Boolean _) =
           , HH.text "false"
           ]
       ]
-      , HH.div [css "row"] [  
+      , HH.div [] [  
         HH.label
           [ css "checkbox" ]
           [ HH.input
