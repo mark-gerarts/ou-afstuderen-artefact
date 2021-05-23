@@ -8,9 +8,28 @@ import "tophat" Prelude
 
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
-main = visualizeTaskDevel initialTask
+main = visualizeTaskDevel multBySevenMachine
 
--- Some dummy task to showcase all 3 currently supported types working together.
-initialTask :: Task h Unit
-initialTask =
-  Fail
+exampleTask :: Task h Text
+exampleTask =
+  update ("Hello!" :: Text) >< (update True >< update (1 :: Int)) >>? \(t, (b, i)) ->
+    view
+      <| unwords
+        [ "The left value was \"",
+          t,
+          "\", the right value was",
+          display (b, i)
+        ]
+        
+-- Multiplication-by-seven machine
+
+multiplication:: Int -> Int -> Task h Int
+multiplication x y = view (x*y)
+
+multBySeven:: Int -> Task h Int
+multBySeven x = multiplication x 7
+
+
+multBySevenMachine :: Task h Int
+multBySevenMachine = enter >>? \x ->
+      multBySeven x 
