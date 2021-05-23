@@ -41,6 +41,14 @@ taskToJSON (Step t _) =
     [ "type" .= String "step",
       "task" .= taskToJSON t
     ]
+taskToJSON (Done _) =
+  object
+    [ "type" .= String "done"
+    ]   
+taskToJSON (Fail) =
+  object
+    [ "type" .= String "fail"
+    ]        
 taskToJSON _ = undefined
 
 nameToJSON :: Name -> Value

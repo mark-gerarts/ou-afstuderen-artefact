@@ -188,6 +188,14 @@ renderTask (Pair t1 t2) possibleInputs inputDescriptions =
 
 renderTask (Step t) possibleInputs inputDescriptions = renderTask t possibleInputs inputDescriptions
 
+renderTask (Done) _ _ =
+  Bulma.panel ("Done task")
+    (HH.p_ [ HH.text $ (show Done) ])
+
+renderTask (Fail) _ _ =
+  Bulma.panel ("Fail task")
+    (HH.p_ [ HH.text $ (show Fail) ])
+
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
   HH.input

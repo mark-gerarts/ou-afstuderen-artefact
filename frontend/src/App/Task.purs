@@ -12,6 +12,8 @@ data Task
   = Edit Name Editor
   | Pair Task Task
   | Step Task
+  | Done
+  | Fail
 
 instance decodeJsonTask :: DecodeJson Task where
   decodeJson json = do
@@ -29,12 +31,18 @@ instance decodeJsonTask :: DecodeJson Task where
       "step" -> do
         task <- obj .: "task"
         pure $ Step task
+      "done" -> do
+        pure $ Done
+      "fail" -> do
+        pure $ Fail                
       _ -> Left (JsonDecodeError.UnexpectedValue (encodeJson taskType))
 
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
+  show (Done) = "Done"
+  show (Fail) = "Fail"
 
 data Editor
   = Update Value
@@ -150,6 +158,8 @@ taskToArray (Edit (Named id) Enter)  array = insert (Insert id (String "")) arra
 taskToArray (Edit Unnamed _) _ = []
 taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
 taskToArray (Step t) array = taskToArray t array
+taskToArray (Done) _ = []
+taskToArray (Fail) _ = []
 
 isSelectedInput :: Int -> Input -> Boolean
 isSelectedInput id' (Insert id _) 
