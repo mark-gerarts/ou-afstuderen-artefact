@@ -136,7 +136,7 @@ renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
       )
 
 renderTask (Edit name (View value)) _ _ =
-  Bulma.panel ("Update Task [" <> show name <> "]")
+  Bulma.panel ("View Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
 renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
