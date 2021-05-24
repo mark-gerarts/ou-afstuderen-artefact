@@ -1,8 +1,8 @@
 module Main where
 
-import Task (Task, update, view, (>>?), enter, Task(Done), Task(Fail),(<?>), select, Label)
-import Visualize (visualizeTask)
 import qualified Data.HashMap.Strict as HashMap
+import Task (Label, Task, enter, select, update, view, (<?>), (>>?))
+import Visualize (visualizeTask)
 
 main :: IO ()
 main = visualizeTask startCandyMachine
@@ -36,16 +36,16 @@ pick3' = select hashmap
 
 -- Multiplication-by-seven machine
 
-multiplication:: Int -> Int -> Task h Int
-multiplication x y = view (x*y)
+multiplication :: Int -> Int -> Task h Int
+multiplication x y = view (x * y)
 
-multBySeven:: Int -> Task h Int
+multBySeven :: Int -> Task h Int
 multBySeven x = multiplication x 7
 
-
 multBySevenMachine :: Task h Int
-multBySevenMachine = enter >>? \x ->
-      multBySeven x
+multBySevenMachine =
+  enter >>? \x ->
+    multBySeven x
 
 -- CandyMachine
 
@@ -69,3 +69,4 @@ data CandyMachineMood = Fair | Evil
 candyMachineDispenser:: CandyMachineMood -> Task h Text
 candyMachineDispenser Fair = view ("You have paid. Here is your candy. Enjoy it!"::Text)
 candyMachineDispenser Evil = view ("You have paid too much, fool! You don't get change, but here is your candy."::Text)
+

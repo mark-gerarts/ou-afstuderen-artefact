@@ -2,11 +2,11 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import "tophat" Task (Task, update, view, (>>?), enter, Task(Done), Task(Fail),(<?>), select, Label)
-import "ou-afstuderen-artefact" Visualize (visualizeTaskDevel)
-import "tophat" Prelude
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Text as Text
+import "tophat" Task (Label, Task, enter, select, update, view, (<?>), (>>?))
+import Visualize (visualizeTaskDevel)
+import "tophat" Prelude
+
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
 main = visualizeTaskDevel startCandyMachine
@@ -33,23 +33,23 @@ pick2 :: Task h Int
 pick2 = view 1 <?> view 2
 
 hashmap :: HashMap Label (Task h Int)
-hashmap = HashMap.insert ("B"::Label) (view (22::Int)) (HashMap.insert ("A"::Label) (view (11::Int)) HashMap.empty)
+hashmap = HashMap.insert ("B" :: Label) (view (22 :: Int)) (HashMap.insert ("A" :: Label) (view (11 :: Int)) HashMap.empty)
 
 pick3' :: Task h Int
 pick3' = select hashmap
 
 -- Multiplication-by-seven machine
 
-multiplication:: Int -> Int -> Task h Int
-multiplication x y = view (x*y)
+multiplication :: Int -> Int -> Task h Int
+multiplication x y = view (x * y)
 
-multBySeven:: Int -> Task h Int
+multBySeven :: Int -> Task h Int
 multBySeven x = multiplication x 7
 
-
 multBySevenMachine :: Task h Int
-multBySevenMachine = enter >>? \x ->
-      multBySeven x
+multBySevenMachine =
+  enter >>? \x ->
+    multBySeven x
 
 -- CandyMachine
 
@@ -73,3 +73,4 @@ data CandyMachineMood = Fair | Evil
 candyMachineDispenser:: CandyMachineMood -> Task h Text
 candyMachineDispenser Fair = view ("You have paid. Here is your candy. Enjoy it!"::Text)
 candyMachineDispenser Evil = view ("You have paid too much, fool! You don't get change, but here is your candy."::Text)
+

@@ -1,5 +1,20 @@
 cradle:
-    stack:
+  # We use a multi setup to prevent editor errors on Setup.hs. This should no
+  # longer be necessary once we move to a higher HLS/GHC version.
+  # @see: https://github.com/haskell/haskell-language-server/issues/335
+  multi:
+    - path: ./Setup.hs
+      config:
+        cradle:
+          direct:
+            arguments:
+              - "-package Cabal"
+              - "-package base"
+
+    - path : ./
+      config:
+        cradle:
+          stack:
 
 dependencies:
     - package.yaml
