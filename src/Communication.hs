@@ -77,7 +77,11 @@ editorToJSON (View t) =
 editorToJSON (Enter) =
   object
     [ "type" .= String "enter"
-    ]    
+    ]
+editorToJSON (Select _) =
+  object
+    [ "type" .= String "select"
+    ]            
 editorToJSON _ = undefined
 
 data JsonInput where

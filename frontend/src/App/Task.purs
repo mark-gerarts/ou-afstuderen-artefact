@@ -48,11 +48,13 @@ data Editor
   = Update Value
   | View Value
   | Enter
+  | Select
 
 instance showEditor :: Show Editor where
   show (Update x) = "Update " <> show x
   show (View x) = "View " <> show x
   show (Enter) = "Enter "
+  show (Select) = "Select "
 
 instance decodeJsonEditor :: DecodeJson Editor where
   decodeJson json = do
@@ -67,6 +69,8 @@ instance decodeJsonEditor :: DecodeJson Editor where
         pure $ View value
       "enter" -> do
         pure $ Enter
+      "select" -> do
+        pure $ Select        
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name
@@ -155,6 +159,7 @@ taskToArray:: Task -> Array Input -> Array Input
 taskToArray (Edit (Named id) (Update value)) array = insert (Insert id value) array
 taskToArray (Edit _ (View _)) _ = []
 taskToArray (Edit (Named id) Enter)  array = insert (Insert id (String "")) array
+taskToArray (Edit _ (Select)) _ = []
 taskToArray (Edit Unnamed _) _ = []
 taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
 taskToArray (Step t) array = taskToArray t array

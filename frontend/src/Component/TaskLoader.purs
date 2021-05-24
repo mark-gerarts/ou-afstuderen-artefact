@@ -177,6 +177,10 @@ renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
           ]
       )
 
+renderTask (Edit name (Select)) _ _ =
+  Bulma.panel ("Select Task [" <> show name <> "]")
+    (HH.p_ [ HH.text "Choose an option below" ])
+
 renderTask (Edit Unnamed _) _ _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
 renderTask (Pair t1 t2) possibleInputs inputDescriptions =
