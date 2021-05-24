@@ -3,6 +3,7 @@ import Data.Aeson
 import Data.Aeson.Types (Pair)
 import Task (Editor (..), Name (..), Task (..))
 import Test.Hspec
+import Test.Hspec.QuickCheck
 
 main :: IO ()
 main =
@@ -13,19 +14,20 @@ main =
           `shouldBe` encode
             (taskObject ["type" .= String "done"])
 
-      it "encodes an Update editor to JSON" <| do
-        encode (JsonTask (Edit (Named 1) (Update (5 :: Int))) [])
-          `shouldBe` encode
-            ( taskObject
-                [ "type" .= String "edit",
-                  "editor"
-                    .= object
-                      [ "type" .= String "update",
-                        "value" .= Number 5
-                      ],
-                  "name" .= Number 1
-                ]
-            )
+      prop "encodes an Update editor to JSON" <| do
+        \name value ->
+          encode (JsonTask (Edit (Named name) (Update (value :: Int))) [])
+            `shouldBe` encode
+              ( taskObject
+                  [ "type" .= String "edit",
+                    "editor"
+                      .= object
+                        [ "type" .= String "update",
+                          "value" .= value
+                        ],
+                    "name" .= name
+                  ]
+              )
 
 taskObject :: [Pair] -> Value
 taskObject task =

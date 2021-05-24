@@ -41,6 +41,7 @@ dependencies:
 - scientific
 - hspec
 - hspec-contrib
+- QuickCheck
 
 library:
   source-dirs: src
