@@ -44,11 +44,11 @@ taskToJSON (Step t _) =
 taskToJSON (Done _) =
   object
     [ "type" .= String "done"
-    ]   
-taskToJSON (Fail) =
+    ]
+taskToJSON Fail =
   object
     [ "type" .= String "fail"
-    ]        
+    ]
 taskToJSON _ = undefined
 
 nameToJSON :: Name -> Value
@@ -74,14 +74,14 @@ editorToJSON (View t) =
     [ "type" .= String "view",
       "value" .= t
     ]
-editorToJSON (Enter) =
+editorToJSON Enter =
   object
     [ "type" .= String "enter"
     ]
 editorToJSON (Select _) =
   object
     [ "type" .= String "select"
-    ]            
+    ]
 editorToJSON _ = undefined
 
 data JsonInput where
