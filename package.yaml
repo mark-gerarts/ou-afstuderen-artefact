@@ -39,6 +39,8 @@ dependencies:
 - wai-cors
 - polysemy >= 1.5.0 && < 2
 - scientific
+- hspec
+- hspec-contrib
 
 library:
   source-dirs: src

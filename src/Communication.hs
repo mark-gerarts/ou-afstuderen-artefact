@@ -13,7 +13,7 @@ import Task.Input (Concrete (..), Dummy, Input (..))
 
 -- We wrap the Task in a new datatype and use regular functions to encode them
 -- to JSON to prevent orphaned instances.
-data JsonTask where -- @todo: find a better name for this.
+data JsonTask where
   JsonTask :: ToJSON t => Task h t -> List (Input Dummy) -> JsonTask
 
 instance ToJSON JsonTask where

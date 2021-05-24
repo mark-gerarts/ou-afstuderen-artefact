@@ -38,6 +38,8 @@ library
     , bytestring
     , containers
     , directory
+    , hspec
+    , hspec-contrib
     , http-media
     , http-types
     , polysemy >=1.5.0 && <2
@@ -68,6 +70,8 @@ executable ou-afstuderen-artefact-exe
     , bytestring
     , containers
     , directory
+    , hspec
+    , hspec-contrib
     , http-media
     , http-types
     , ou-afstuderen-artefact
@@ -100,6 +104,8 @@ test-suite ou-afstuderen-artefact-test
     , bytestring
     , containers
     , directory
+    , hspec
+    , hspec-contrib
     , http-media
     , http-types
     , ou-afstuderen-artefact
