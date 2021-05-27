@@ -1,13 +1,12 @@
 module Main where
 
-import qualified Data.HashMap.Strict as HashMap
 import Task (Label, Task, enter, select, update, view, (<?>), (>>?))
 import Visualize (visualizeTask)
 
 main :: IO ()
 main = visualizeTask startCandyMachine
 
----Example tasks
+--Example tasks
 
 stepViewUpdate :: Task h Text
 stepViewUpdate =
@@ -28,11 +27,12 @@ oneStep' =
 pick2 :: Task h Int
 pick2 = view 1 <?> view 2
 
-hashmap :: HashMap Label (Task h Int)
-hashmap = HashMap.insert ("B"::Label) (view (22::Int)) (HashMap.insert ("A"::Label) (view (11::Int)) HashMap.empty)
-
 pick3' :: Task h Int
-pick3' = select hashmap
+pick3' =
+  select
+    [ "B" ~> view 22,
+      "A" ~> view 11
+    ]
 
 -- Multiplication-by-seven machine
 
@@ -48,25 +48,41 @@ multBySevenMachine =
     multBySeven x
 
 -- CandyMachine
+candyMachine :: HashMap Label (Task h (Text, Text))
+candyMachine =
+  [ entry "Pure Chocolate" 8,
+    entry "IO Chocolate" 7,
+    entry "Sem Chocolate" 9
+  ]
+  where
+    entry :: Text -> Int -> (Label, Task h (Text, Text))
+    entry name price =
+      (name, view "You need to pay:" >< (view price >>? \x -> candyMachinePayDesk x))
 
-fillCandyMachine:: Text -> Int -> HashMap Label (Task h (Text,Text)) -> HashMap Label (Task h (Text,Text))
-fillCandyMachine name price = HashMap.insert (name::Label) (view ("You need to pay:"::Text) >< (view price >>? \x-> candyMachinePayDesk x))
+payCoin :: Int -> HashMap Label (Task h Int)
+payCoin bill =
+  [ coinSize 5,
+    coinSize 2,
+    coinSize 1
+  ]
+  where
+    coinSize :: Int -> (Label, Task h Int)
+    coinSize size = (display size, view (bill - size))
 
-filledCandyMachine:: HashMap Label (Task h (Text,Text))
-filledCandyMachine = fillCandyMachine ("Pure Chocolate"::Text) (8::Int) (fillCandyMachine ("IO Chocolate"::Text) (7::Int) (fillCandyMachine ("Sem Chocolate"::Text) (9::Int) HashMap.empty))
+startCandyMachine :: (Task h (Text, Text))
+startCandyMachine = select candyMachine
 
-payCoin :: Int ->HashMap Label (Task h Int)
-payCoin bill = HashMap.insert ("5"::Label) (view (bill-5::Int)) (HashMap.insert ("2"::Label) (view (bill-2::Int)) (HashMap.insert ("1"::Label) (view (bill-1::Int)) HashMap.empty))
-
-startCandyMachine:: (Task h (Text,Text))
-startCandyMachine = select filledCandyMachine
-
-candyMachinePayDesk:: Int -> Task h Text
-candyMachinePayDesk bill = select (payCoin bill)  >>? \billLeft -> (if billLeft>0 then candyMachinePayDesk billLeft else (if billLeft<0 then candyMachineDispenser Evil else candyMachineDispenser Fair))
+candyMachinePayDesk :: Int -> Task h Text
+candyMachinePayDesk bill =
+  select (payCoin bill)
+    >>? \billLeft ->
+      case compare billLeft 0 of
+        EQ -> candyMachineDispenser Fair
+        LT -> candyMachineDispenser Evil
+        GT -> candyMachinePayDesk billLeft
 
 data CandyMachineMood = Fair | Evil
 
-candyMachineDispenser:: CandyMachineMood -> Task h Text
-candyMachineDispenser Fair = view ("You have paid. Here is your candy. Enjoy it!"::Text)
-candyMachineDispenser Evil = view ("You have paid too much, fool! You don't get change, but here is your candy."::Text)
-
+candyMachineDispenser :: CandyMachineMood -> Task h Text
+candyMachineDispenser Fair = view "You have paid. Here is your candy. Enjoy it!"
+candyMachineDispenser Evil = view "You have paid too much, fool! You don't get change, but here is your candy."

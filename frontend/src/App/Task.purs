@@ -1,7 +1,6 @@
 module App.Task where
 
 import Prelude
-
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
 import Data.Array (filter, head, insert)
@@ -34,7 +33,7 @@ instance decodeJsonTask :: DecodeJson Task where
       "done" -> do
         pure $ Done
       "fail" -> do
-        pure $ Fail                
+        pure $ Fail
       _ -> Left (JsonDecodeError.UnexpectedValue (encodeJson taskType))
 
 instance showTask :: Show Task where
@@ -70,7 +69,7 @@ instance decodeJsonEditor :: DecodeJson Editor where
       "enter" -> do
         pure $ Enter
       "select" -> do
-        pure $ Select        
+        pure $ Select
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name

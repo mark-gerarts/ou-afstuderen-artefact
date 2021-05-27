@@ -62,7 +62,7 @@ extra-deps:
 # flags: {}
 
 ghc-options:
-  "$locals": "-XOverloadedStrings -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints"
+  "$locals": "-XOverloadedStrings -XOverloadedLists -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints"
 
 # Extra package databases containing global packages
 # extra-package-dbs: []
