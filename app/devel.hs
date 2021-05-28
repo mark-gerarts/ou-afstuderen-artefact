@@ -74,8 +74,8 @@ payCoin bill =
     coinSize :: Int -> (Label, Task h Int)
     coinSize size = (display size, view (bill - size))
 
-startCandyMachine :: (Task h (Text, Text))
-startCandyMachine = select candyMachine
+startCandyMachine :: (Task h (Text, (Text, Text)))
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyMachine
 
 candyMachinePayDesk :: Int -> Task h Text
 candyMachinePayDesk bill =
