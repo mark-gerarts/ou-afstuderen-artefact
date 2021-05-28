@@ -1,11 +1,13 @@
 module App.Task where
 
 import Prelude
+
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
 import Data.Array (filter, head, insert)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (Maybe, fromJust)
+import Partial.Unsafe (unsafePartial)
 
 data Task
   = Edit Name Editor
@@ -175,7 +177,7 @@ filterInputs:: Int -> Array Input -> Maybe Input
 filterInputs id inputs = head $ filter (isSelectedInput id) inputs
 
 selectInput:: Int -> Array Input -> Input
-selectInput id inputs = fromMaybe (Insert 0 (String "")) $ (filterInputs id inputs)
+selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
 
 updateInput :: Name -> Value -> Input -> Input
 updateInput (Named id) newValue input@(Insert name' _)
@@ -222,4 +224,4 @@ filterInputsDescription:: Int -> Array InputDescription -> Maybe InputDescriptio
 filterInputsDescription id inputs = head $ filter (isSelectedInputDescription id) inputs
 
 selectInputDescription:: Int -> Array InputDescription -> InputDescription
-selectInputDescription id inputs = fromMaybe (InsertDescription 0 "") $ (filterInputsDescription id inputs)
+selectInputDescription id inputs = unsafePartial $ fromJust $ (filterInputsDescription id inputs)
