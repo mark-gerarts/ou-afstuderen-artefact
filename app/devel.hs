@@ -9,9 +9,12 @@ import "tophat" Prelude
 
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
-main = visualizeTaskDevel startCandyMachine
+main = visualizeTaskDevel enterTask
 
 --Example tasks
+
+enterTask:: Task h Bool
+enterTask = enter
 
 stepViewUpdate :: Task h Text
 stepViewUpdate =

@@ -128,7 +128,7 @@ renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
           , HH.div [ css "field is-grouped" ]
               [ HH.div [ css "control" ]
                   [ HH.button
-                      [ css "button is-link btn-update-submit" ]
+                      [ css "button is-link btn-update-submit"]
                       [ HH.text "Submit" ]
                   ]
               ]
@@ -205,6 +205,7 @@ renderEditor name (String value) =
   HH.input
     [ css "input"
     , HP.value value
+    , HP.required true
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
@@ -212,7 +213,8 @@ renderEditor name (String value) =
 renderEditor name (Int value) =
   HH.input
     [ css "input"
-    , HP.value (show value)  
+    , HP.value (show value) 
+    , HP.required true 
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
@@ -225,8 +227,9 @@ renderEditor name (Boolean value) =
           [ css "checkbox" ]
           [ HH.input
               [ css "checkbox"
+              , HP.required true                  
               , HP.type_ HP.InputRadio
-              , HP.checked (not value)              
+              , HP.checked (not value)            
               , HP.name "radiobuttonTrueFalse"
               , HE.onChange \_ -> UpdateInput name (Boolean (false))
               ]
@@ -238,6 +241,7 @@ renderEditor name (Boolean value) =
           [ css "checkbox" ]
           [ HH.input
               [ css "checkbox"
+              , HP.required true                  
               , HP.type_ HP.InputRadio
               , HP.checked value
               , HP.name "radiobuttonTrueFalse"
@@ -252,6 +256,7 @@ renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
 renderEditorEnter name (String _) =
   HH.input
     [ css "input"
+    , HP.required true 
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
@@ -259,6 +264,7 @@ renderEditorEnter name (String _) =
 renderEditorEnter name (Int _) =
   HH.input
     [ css "input"
+    , HP.required true  
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
@@ -271,6 +277,7 @@ renderEditorEnter name (Boolean _) =
           [ css "checkbox" ]
           [ HH.input
               [ css "checkbox"
+              , HP.required true   
               , HP.type_ HP.InputRadio       
               , HP.name "radiobuttonTrueFalse"
               , HE.onChange \_ -> UpdateInput name (Boolean (false))
@@ -283,6 +290,7 @@ renderEditorEnter name (Boolean _) =
           [ css "checkbox" ]
           [ HH.input
               [ css "checkbox"
+              , HP.required true                 
               , HP.type_ HP.InputRadio
               , HP.name "radiobuttonTrueFalse"
               , HE.onChange \_ -> UpdateInput name (Boolean (true))
