@@ -5,11 +5,16 @@
 
 module Communication (JsonTask (..), JsonInput (..)) where
 
+import Control.Exception (throw)
 import Data.Aeson
 import Data.Aeson.Types (Parser, parseFail)
 import Data.Scientific (toBoundedInteger)
 import Task
 import Task.Input (Concrete (..), Dummy, Input (..))
+
+newtype NotImplementedException = NotImplementedException Text deriving (Debug)
+
+instance Exception NotImplementedException
 
 -- We wrap the Task in a new datatype and use regular functions to encode them
 -- to JSON to prevent orphaned instances.
@@ -49,7 +54,7 @@ taskToJSON Fail =
   object
     [ "type" .= String "fail"
     ]
-taskToJSON _ = undefined
+taskToJSON _ = throw (NotImplementedException "Task of this type is not supported yet")
 
 nameToJSON :: Name -> Value
 nameToJSON (Named name) = toJSON name
@@ -82,7 +87,8 @@ editorToJSON (Select _) =
   object
     [ "type" .= String "select"
     ]
-editorToJSON _ = undefined
+editorToJSON (Change _) = throw (NotImplementedException "Editor type 'Change' is not supported yet")
+editorToJSON (Watch _) = throw (NotImplementedException "Editor type 'Watch' is not supported yet")
 
 data JsonInput where
   JsonInput :: Input Concrete -> JsonInput
