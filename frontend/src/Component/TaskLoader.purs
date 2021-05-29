@@ -1,9 +1,8 @@
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
-
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, selectInput, taskToArray, updateInput, selectInputDescription)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInput, selectInputDescription, taskToArray, updateInput)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Utils (css)
 import Data.Array (filter)
@@ -73,7 +72,7 @@ handleAction (Interact input event) = do
   setFromTaskResponse taskResp
 
 handleAction (UpdateInput id x) = do
-  H.modify_ \s -> s { possibleInputs = (updateInput id x) <$> s.possibleInputs }  
+  H.modify_ \s -> s { possibleInputs = (updateInput id x) <$> s.possibleInputs }
 
 setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
 setFromTaskResponse taskResp = case taskResp of
@@ -84,8 +83,7 @@ setFromTaskResponse taskResp = case taskResp of
         { currentTask = Just task
         , possibleInputs = taskToArray task []
         , inputDescriptions = inputs
-        } 
-
+        }
 
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
@@ -111,24 +109,23 @@ renderTaskWithInputs task possibleInputs inputDescriptions =
 renderTask :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
 renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
   let
-    inputWanted:: Value
+    inputWanted :: Value
     inputWanted = case selectInput id possibleInputs of
       Insert _ value' -> value'
       Option _ _ -> String "Should not be possible?"
-        
-  in  
+  in
     Bulma.panel ("Update Task [" <> show name <> "]")
       ( HH.form
           [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
           [ HH.div [ css "field" ]
-              [ HH.label_ [ HH.text ("Value: ")]
+              [ HH.label_ [ HH.text ("Value: ") ]
               , HH.div [ css "control" ]
-                  [ renderEditor name value  ]
+                  [ renderEditor name value ]
               ]
           , HH.div [ css "field is-grouped" ]
               [ HH.div [ css "control" ]
                   [ HH.button
-                      [ css "button is-link btn-update-submit"]
+                      [ css "button is-link btn-update-submit" ]
                       [ HH.text "Submit" ]
                   ]
               ]
@@ -141,31 +138,31 @@ renderTask (Edit name (View value)) _ _ =
 
 renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
   let
-    inputWanted:: Value
+    inputWanted :: Value
     inputWanted = case selectInput id possibleInputs of
       Insert _ value -> value
-      Option _ _ -> String "Should not be possible?"  
+      Option _ _ -> String "Should not be possible?"
 
-    inputDescriptionWanted:: String
+    inputDescriptionWanted :: String
     inputDescriptionWanted = case selectInputDescription id inputDescriptions of
       InsertDescription _ value -> value
-      OptionDescription _ _ -> "Should not be possible?" 
+      OptionDescription _ _ -> "Should not be possible?"
 
-    typeOfEditor:: Value    
+    typeOfEditor :: Value
     typeOfEditor = case inputDescriptionWanted of
       -- Initial Values: right type, dummy values
       "<Text>" -> String ""
-      "<Int>" ->  Int 0
+      "<Int>" -> Int 0
       "<Bool>" -> Boolean false
       otherwise -> String "should not be possible?"
-  in 
-  Bulma.panel ("Enter Task [" <> show name <> "]")
+  in
+    Bulma.panel ("Enter Task [" <> show name <> "]")
       ( HH.form
           [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
           [ HH.div [ css "field" ]
-              [ HH.label_ [ HH.text ("Value: ")]
+              [ HH.label_ [ HH.text ("Value: ") ]
               , HH.div [ css "control" ]
-                  [ renderEditorEnter name typeOfEditor  ]
+                  [ renderEditorEnter name typeOfEditor ]
               ]
           , HH.div [ css "field is-grouped" ]
               [ HH.div [ css "control" ]
@@ -177,9 +174,22 @@ renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
           ]
       )
 
-renderTask (Edit name (Select)) _ _ =
-  Bulma.panel ("Select Task [" <> show name <> "]")
-    (HH.p_ [ HH.text "Choose an option below" ])
+renderTask (Edit name Select) _ possibleInputs =
+  let
+    id = case name of
+      Unnamed -> -1
+      (Named id') -> id'
+
+    options = filter (\x -> isOption x && isSelectedInputDescription id x) possibleInputs
+
+    buttons = map renderInput options
+  in
+    Bulma.panel ("Select Task [" <> show name <> "]")
+      ( HH.div_
+          [ HH.p [ css "my-1" ] [ HH.text "Choose an option below:" ]
+          , HH.div [ css "buttons" ] buttons
+          ]
+      )
 
 renderTask (Edit Unnamed _) _ _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
@@ -213,8 +223,8 @@ renderEditor name (String value) =
 renderEditor name (Int value) =
   HH.input
     [ css "input"
-    , HP.value (show value) 
-    , HP.required true 
+    , HP.value (show value)
+    , HP.required true
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
@@ -222,41 +232,41 @@ renderEditor name (Int value) =
 renderEditor name (Boolean value) =
   HH.div
     []
-      [HH.div [] [  
-        HH.label
-          [ css "checkbox" ]
-          [ HH.input
-              [ css "checkbox"
-              , HP.required true                  
-              , HP.type_ HP.InputRadio
-              , HP.checked (not value)            
-              , HP.name "radiobuttonTrueFalse"
-              , HE.onChange \_ -> UpdateInput name (Boolean (false))
-              ]
-          , HH.text "false"
-          ]
-      ]
-      , HH.div [] [  
-        HH.label
-          [ css "checkbox" ]
-          [ HH.input
-              [ css "checkbox"
-              , HP.required true                  
-              , HP.type_ HP.InputRadio
-              , HP.checked value
-              , HP.name "radiobuttonTrueFalse"
-              , HE.onChange \_ -> UpdateInput name (Boolean (true))
-              ]
-          , HH.text "true"
-          ]
+    [ HH.div []
+        [ HH.label
+            [ css "checkbox" ]
+            [ HH.input
+                [ css "checkbox"
+                , HP.required true
+                , HP.type_ HP.InputRadio
+                , HP.checked (not value)
+                , HP.name "radiobuttonTrueFalse"
+                , HE.onChange \_ -> UpdateInput name (Boolean (false))
+                ]
+            , HH.text "false"
+            ]
         ]
-      ]
+    , HH.div []
+        [ HH.label
+            [ css "checkbox" ]
+            [ HH.input
+                [ css "checkbox"
+                , HP.required true
+                , HP.type_ HP.InputRadio
+                , HP.checked value
+                , HP.name "radiobuttonTrueFalse"
+                , HE.onChange \_ -> UpdateInput name (Boolean (true))
+                ]
+            , HH.text "true"
+            ]
+        ]
+    ]
 
 renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
 renderEditorEnter name (String _) =
   HH.input
     [ css "input"
-    , HP.required true 
+    , HP.required true
     , HE.onValueInput \s -> UpdateInput name (String s)
     , HP.type_ HP.InputText
     ]
@@ -264,7 +274,7 @@ renderEditorEnter name (String _) =
 renderEditorEnter name (Int _) =
   HH.input
     [ css "input"
-    , HP.required true  
+    , HP.required true
     , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
     , HP.type_ HP.InputNumber
     ]
@@ -272,40 +282,40 @@ renderEditorEnter name (Int _) =
 renderEditorEnter name (Boolean _) =
   HH.div
     []
-      [HH.div [] [  
-        HH.label
-          [ css "checkbox" ]
-          [ HH.input
-              [ css "checkbox"
-              , HP.required true   
-              , HP.type_ HP.InputRadio       
-              , HP.name "radiobuttonTrueFalse"
-              , HE.onChange \_ -> UpdateInput name (Boolean (false))
-              ]
-          , HH.text "false"
-          ]
-      ]
-      , HH.div [] [  
-        HH.label
-          [ css "checkbox" ]
-          [ HH.input
-              [ css "checkbox"
-              , HP.required true                 
-              , HP.type_ HP.InputRadio
-              , HP.name "radiobuttonTrueFalse"
-              , HE.onChange \_ -> UpdateInput name (Boolean (true))
-              ]
-          , HH.text "true"
-          ]
+    [ HH.div []
+        [ HH.label
+            [ css "checkbox" ]
+            [ HH.input
+                [ css "checkbox"
+                , HP.required true
+                , HP.type_ HP.InputRadio
+                , HP.name "radiobuttonTrueFalse"
+                , HE.onChange \_ -> UpdateInput name (Boolean (false))
+                ]
+            , HH.text "false"
+            ]
         ]
-      ]
+    , HH.div []
+        [ HH.label
+            [ css "checkbox" ]
+            [ HH.input
+                [ css "checkbox"
+                , HP.required true
+                , HP.type_ HP.InputRadio
+                , HP.name "radiobuttonTrueFalse"
+                , HE.onChange \_ -> UpdateInput name (Boolean (true))
+                ]
+            , HH.text "true"
+            ]
+        ]
+    ]
 
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =
   let
-    options = filter isOption inputDescriptions
+    unnamedOptions = filter (\x -> isOption x && isUnnamed x) inputDescriptions
 
-    buttons = renderActionButtons <> map renderInput options
+    buttons = renderActionButtons <> map renderInput unnamedOptions
   in
     HH.div [ css "buttons is-right" ] buttons
 

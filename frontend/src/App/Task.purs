@@ -1,7 +1,6 @@
 module App.Task where
 
 import Prelude
-
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
 import Data.Array (filter, head, insert)
@@ -146,44 +145,55 @@ instance encodeInput :: EncodeJson Input where
 instance eqInput :: Eq Input where
   eq (Insert id1 _) (Insert id2 _) = eq id1 id2
   eq (Option id1 _) (Option id2 _) = eq id1 id2
-  eq (Insert _ _) (Option _ _ ) = false
+  eq (Insert _ _) (Option _ _) = false
   eq (Option _ _) (Insert _ _) = false
 
 instance ordInput :: Ord Input where
   compare (Insert id1 _) (Insert id2 _) = compare id1 id2
   compare (Option (Named id1) _) (Option (Named id2) _) = compare id1 id2
   compare (Option _ _) (Option _ _) = LT
-  compare (Insert _ _) (Option _ _ ) = LT
+  compare (Insert _ _) (Option _ _) = LT
   compare (Option _ _) (Insert _ _) = GT
 
-taskToArray:: Task -> Array Input -> Array Input
+taskToArray :: Task -> Array Input -> Array Input
 taskToArray (Edit (Named id) (Update value)) array = insert (Insert id value) array
+
 taskToArray (Edit _ (View _)) _ = []
-taskToArray (Edit (Named id) Enter)  array = insert (Insert id (String "")) array
+
+taskToArray (Edit (Named id) Enter) array = insert (Insert id (String "")) array
+
 taskToArray (Edit _ (Select)) _ = []
+
 taskToArray (Edit Unnamed _) _ = []
+
 taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
+
 taskToArray (Step t) array = taskToArray t array
+
 taskToArray (Done) _ = []
+
 taskToArray (Fail) _ = []
 
 isSelectedInput :: Int -> Input -> Boolean
-isSelectedInput id' (Insert id _) 
- | id == id' = true
- | otherwise = false
+isSelectedInput id' (Insert id _)
+  | id == id' = true
+  | otherwise = false
+
 isSelectedInput _ (Option _ _) = false
 
-filterInputs:: Int -> Array Input -> Maybe Input
+filterInputs :: Int -> Array Input -> Maybe Input
 filterInputs id inputs = head $ filter (isSelectedInput id) inputs
 
-selectInput:: Int -> Array Input -> Input
+selectInput :: Int -> Array Input -> Input
 selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
 
 updateInput :: Name -> Value -> Input -> Input
 updateInput (Named id) newValue input@(Insert name' _)
   | id == name' = Insert id newValue
   | otherwise = input
+
 updateInput _ _ input@(Option _ _) = input
+
 updateInput (Unnamed) _ input = input
 
 data InputDescription
@@ -211,17 +221,24 @@ instance decodeJsonInputDescription :: DecodeJson InputDescription where
 
 isOption :: InputDescription -> Boolean
 isOption (InsertDescription _ _) = false
+
 isOption (OptionDescription _ _) = true
 
 -- Select and update inputDescription
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
-isSelectedInputDescription id' (InsertDescription id _) 
- | id == id' = true
- | otherwise = false
-isSelectedInputDescription _ (OptionDescription _ _) = false
+isSelectedInputDescription id (InsertDescription id' _) = id == id'
 
-filterInputsDescription:: Int -> Array InputDescription -> Maybe InputDescription
+isSelectedInputDescription id (OptionDescription (Named id') _) = id == id'
+
+isSelectedInputDescription _ _ = false
+
+isUnnamed :: InputDescription -> Boolean
+isUnnamed (OptionDescription Unnamed _) = true
+
+isUnnamed _ = false
+
+filterInputsDescription :: Int -> Array InputDescription -> Maybe InputDescription
 filterInputsDescription id inputs = head $ filter (isSelectedInputDescription id) inputs
 
-selectInputDescription:: Int -> Array InputDescription -> InputDescription
+selectInputDescription :: Int -> Array InputDescription -> InputDescription
 selectInputDescription id inputs = unsafePartial $ fromJust $ (filterInputsDescription id inputs)
