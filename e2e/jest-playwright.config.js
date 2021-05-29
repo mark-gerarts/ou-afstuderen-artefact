@@ -22,6 +22,8 @@ module.exports = {
         serverConfigForTask('Pair.hs', 3003),
         serverConfigForTask('Step.hs', 3004),
         serverConfigForTask('View.hs', 3005),
-        serverConfigForTask('Select.hs', 3006)
+        serverConfigForTask('Select.hs', 3006),
+        serverConfigForTask('Done.hs', 3007),
+        serverConfigForTask('Fail.hs', 3008)
     ]
 }

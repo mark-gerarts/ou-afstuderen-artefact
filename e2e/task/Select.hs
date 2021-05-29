@@ -3,7 +3,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Step where
+module Select where
 
 import Task (Task (..), select, view, (>>?))
 import Visualize (visualizeTask)
