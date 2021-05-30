@@ -72,7 +72,7 @@ handleAction (Interact input event) = do
   setFromTaskResponse taskResp
 
 handleAction (UpdateInput id x) = do
-  H.modify_ \s -> s { possibleInputs = (updateInput id x) <$> s.possibleInputs }
+  H.modify_ \s -> s { possibleInputs = updateInput id x <$> s.possibleInputs }
 
 setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
 setFromTaskResponse taskResp = case taskResp of
@@ -88,7 +88,10 @@ setFromTaskResponse taskResp = case taskResp of
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
-  { currentTask: Just task, possibleInputs: possibleInputs, inputDescriptions: inputDescriptions } -> renderTaskWithInputs task possibleInputs inputDescriptions
+  { currentTask: Just task
+  , possibleInputs: possibleInputs
+  , inputDescriptions: inputDescriptions
+  } -> renderTaskWithInputs task possibleInputs inputDescriptions
   _ -> renderError
 
 renderLoadingScreen :: forall a. HH.HTML a Action
@@ -204,11 +207,11 @@ renderTask (Step t) possibleInputs inputDescriptions = renderTask t possibleInpu
 
 renderTask (Done) _ _ =
   Bulma.panel ("Done task")
-    (HH.p_ [ HH.text $ (show Done) ])
+    (HH.p_ [ HH.text $ show Done ])
 
 renderTask (Fail) _ _ =
   Bulma.panel ("Fail task")
-    (HH.p_ [ HH.text $ (show Fail) ])
+    (HH.p_ [ HH.text $ show Fail ])
 
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
@@ -241,7 +244,7 @@ renderEditor name (Boolean value) =
                 , HP.type_ HP.InputRadio
                 , HP.checked (not value)
                 , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean (false))
+                , HE.onChange \_ -> UpdateInput name (Boolean false)
                 ]
             , HH.text "false"
             ]
@@ -255,7 +258,7 @@ renderEditor name (Boolean value) =
                 , HP.type_ HP.InputRadio
                 , HP.checked value
                 , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean (true))
+                , HE.onChange \_ -> UpdateInput name (Boolean true)
                 ]
             , HH.text "true"
             ]
@@ -290,7 +293,7 @@ renderEditorEnter name (Boolean _) =
                 , HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean (false))
+                , HE.onChange \_ -> UpdateInput name (Boolean false)
                 ]
             , HH.text "false"
             ]
@@ -303,7 +306,7 @@ renderEditorEnter name (Boolean _) =
                 , HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean (true))
+                , HE.onChange \_ -> UpdateInput name (Boolean true)
                 ]
             , HH.text "true"
             ]

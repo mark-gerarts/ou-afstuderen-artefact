@@ -12,5 +12,4 @@ main :: Effect Unit
 main =
   HA.runHalogenAff do
     entryPoint <- HA.selectElement $ QuerySelector "#halogen-app"
-    -- @todo: we ignore all errors by using for_
     for_ entryPoint (runUI taskLoader unit)

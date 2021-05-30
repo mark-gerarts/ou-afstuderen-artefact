@@ -3,7 +3,7 @@ module App.Task where
 import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, isBoolean, isNumber, jsonEmptyObject, jsonNull, (.!=), (.:), (.:?), (:=), (~>))
 import Data.Argonaut.Decode.Error as JsonDecodeError
-import Data.Array (filter, head, insert)
+import Data.Array (filter, head, (:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromJust)
 import Partial.Unsafe (unsafePartial)
@@ -32,17 +32,17 @@ instance decodeJsonTask :: DecodeJson Task where
         task <- obj .: "task"
         pure $ Step task
       "done" -> do
-        pure $ Done
+        pure Done
       "fail" -> do
-        pure $ Fail
+        pure Fail
       _ -> Left (JsonDecodeError.UnexpectedValue (encodeJson taskType))
 
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
-  show (Done) = "Done"
-  show (Fail) = "Fail"
+  show Done = "Done"
+  show Fail = "Fail"
 
 data Editor
   = Update Value
@@ -53,8 +53,8 @@ data Editor
 instance showEditor :: Show Editor where
   show (Update x) = "Update " <> show x
   show (View x) = "View " <> show x
-  show (Enter) = "Enter "
-  show (Select) = "Select "
+  show Enter = "Enter "
+  show Select = "Select "
 
 instance decodeJsonEditor :: DecodeJson Editor where
   decodeJson json = do
@@ -68,9 +68,9 @@ instance decodeJsonEditor :: DecodeJson Editor where
         value <- obj .: "value"
         pure $ View value
       "enter" -> do
-        pure $ Enter
+        pure Enter
       "select" -> do
-        pure $ Select
+        pure Select
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name
@@ -142,44 +142,21 @@ instance encodeInput :: EncodeJson Input where
       := label
       ~> jsonEmptyObject
 
-instance eqInput :: Eq Input where
-  eq (Insert id1 _) (Insert id2 _) = eq id1 id2
-  eq (Option id1 _) (Option id2 _) = eq id1 id2
-  eq (Insert _ _) (Option _ _) = false
-  eq (Option _ _) (Insert _ _) = false
-
-instance ordInput :: Ord Input where
-  compare (Insert id1 _) (Insert id2 _) = compare id1 id2
-  compare (Option (Named id1) _) (Option (Named id2) _) = compare id1 id2
-  compare (Option _ _) (Option _ _) = LT
-  compare (Insert _ _) (Option _ _) = LT
-  compare (Option _ _) (Insert _ _) = GT
-
 taskToArray :: Task -> Array Input -> Array Input
-taskToArray (Edit (Named id) (Update value)) array = insert (Insert id value) array
+taskToArray (Edit (Named id) (Update value)) array = Insert id value : array
 
-taskToArray (Edit _ (View _)) _ = []
-
-taskToArray (Edit (Named id) Enter) array = insert (Insert id (String "")) array
-
-taskToArray (Edit _ (Select)) _ = []
-
-taskToArray (Edit Unnamed _) _ = []
+taskToArray (Edit (Named id) Enter) array = Insert id (String "") : array
 
 taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
 
 taskToArray (Step t) array = taskToArray t array
 
-taskToArray (Done) _ = []
-
-taskToArray (Fail) _ = []
+taskToArray _ _ = []
 
 isSelectedInput :: Int -> Input -> Boolean
-isSelectedInput id' (Insert id _)
-  | id == id' = true
-  | otherwise = false
+isSelectedInput id' (Insert id _) = id == id'
 
-isSelectedInput _ (Option _ _) = false
+isSelectedInput _ _ = false
 
 filterInputs :: Int -> Array Input -> Maybe Input
 filterInputs id inputs = head $ filter (isSelectedInput id) inputs
@@ -188,13 +165,11 @@ selectInput :: Int -> Array Input -> Input
 selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
 
 updateInput :: Name -> Value -> Input -> Input
-updateInput (Named id) newValue input@(Insert name' _)
-  | id == name' = Insert id newValue
+updateInput (Named id) newValue input@(Insert id' _)
+  | id == id' = Insert id newValue
   | otherwise = input
 
-updateInput _ _ input@(Option _ _) = input
-
-updateInput (Unnamed) _ input = input
+updateInput _ _ input = input
 
 data InputDescription
   = InsertDescription Int String
@@ -220,9 +195,9 @@ instance decodeJsonInputDescription :: DecodeJson InputDescription where
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 isOption :: InputDescription -> Boolean
-isOption (InsertDescription _ _) = false
-
 isOption (OptionDescription _ _) = true
+
+isOption _ = false
 
 -- Select and update inputDescription
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
