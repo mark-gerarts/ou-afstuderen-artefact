@@ -4,18 +4,17 @@ import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
 import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInput, selectInputDescription, taskToArray, updateInput)
 import Component.HTML.Bulma as Bulma
+import Component.HTML.Form (booleanInput, integerInput, textInput)
 import Component.HTML.Utils (css)
 import Data.Array (filter)
 import Data.Either (Either(..))
-import Data.Int (fromString)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Partial.Unsafe (unsafePartial)
 import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
 import Web.UIEvent.MouseEvent (toEvent)
@@ -215,99 +214,35 @@ renderTask (Fail) _ _ =
 
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
-  HH.input
-    [ css "input"
-    , HP.value value
-    , HP.required true
-    , HE.onValueInput \s -> UpdateInput name (String s)
-    , HP.type_ HP.InputText
-    ]
+  textInput
+    (Just value)
+    (\s -> UpdateInput name (String s))
 
 renderEditor name (Int value) =
-  HH.input
-    [ css "input"
-    , HP.value (show value)
-    , HP.required true
-    , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
-    , HP.type_ HP.InputNumber
-    ]
+  integerInput
+    (Just value)
+    (\i -> UpdateInput name (Int i))
 
 renderEditor name (Boolean value) =
-  HH.div
-    []
-    [ HH.div []
-        [ HH.label
-            [ css "radio" ]
-            [ HH.input
-                [ HP.required true
-                , HP.type_ HP.InputRadio
-                , HP.checked (not value)
-                , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean false)
-                ]
-            , HH.text " False"
-            ]
-        ]
-    , HH.div []
-        [ HH.label
-            [ css "radio" ]
-            [ HH.input
-                [ HP.required true
-                , HP.type_ HP.InputRadio
-                , HP.checked value
-                , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean true)
-                ]
-            , HH.text " True"
-            ]
-        ]
-    ]
+  booleanInput
+    (Just value)
+    (\b -> UpdateInput name (Boolean b))
 
 renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
 renderEditorEnter name (String _) =
-  HH.input
-    [ css "input"
-    , HP.required true
-    , HE.onValueInput \s -> UpdateInput name (String s)
-    , HP.type_ HP.InputText
-    ]
+  textInput
+    Nothing
+    (\s -> UpdateInput name (String s))
 
 renderEditorEnter name (Int _) =
-  HH.input
-    [ css "input"
-    , HP.required true
-    , HE.onValueInput \s -> UpdateInput name (Int $ unsafePartial $ fromJust $ fromString s)
-    , HP.type_ HP.InputNumber
-    ]
+  integerInput
+    Nothing
+    (\i -> UpdateInput name (Int i))
 
 renderEditorEnter name (Boolean _) =
-  HH.div
-    []
-    [ HH.div []
-        [ HH.label
-            [ css "radio" ]
-            [ HH.input
-                [ HP.required true
-                , HP.type_ HP.InputRadio
-                , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean false)
-                ]
-            , HH.text " False"
-            ]
-        ]
-    , HH.div []
-        [ HH.label
-            [ css "radio" ]
-            [ HH.input
-                [ HP.required true
-                , HP.type_ HP.InputRadio
-                , HP.name "radiobuttonTrueFalse"
-                , HE.onChange \_ -> UpdateInput name (Boolean true)
-                ]
-            , HH.text " True"
-            ]
-        ]
-    ]
+  booleanInput
+    Nothing
+    (\b -> UpdateInput name (Boolean b))
 
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =

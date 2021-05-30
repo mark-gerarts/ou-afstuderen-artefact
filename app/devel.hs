@@ -13,7 +13,7 @@ main = visualizeTaskDevel startCandyMachine
 
 --Example tasks
 
-enterTask:: Task h Bool
+enterTask :: Task h Bool
 enterTask = enter
 
 stepViewUpdate :: Task h Text
