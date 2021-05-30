@@ -16,14 +16,17 @@ module.exports = {
     // some image space & build time.
     browsers: ['chromium'],
     serverOptions: [
-        serverConfigForTask('StringUpdate.hs', 3000),
-        serverConfigForTask('BooleanUpdate.hs', 3001),
-        serverConfigForTask('IntUpdate.hs', 3002),
+        serverConfigForTask('UpdateString.hs', 3000),
+        serverConfigForTask('UpdateBoolean.hs', 3001),
+        serverConfigForTask('UpdateInt.hs', 3002),
         serverConfigForTask('Pair.hs', 3003),
         serverConfigForTask('Step.hs', 3004),
         serverConfigForTask('View.hs', 3005),
         serverConfigForTask('Select.hs', 3006),
         serverConfigForTask('Done.hs', 3007),
-        serverConfigForTask('Fail.hs', 3008)
+        serverConfigForTask('Fail.hs', 3008),
+        serverConfigForTask('EnterString.hs', 3009),
+        serverConfigForTask('EnterBoolean.hs', 3010),
+        serverConfigForTask('EnterInt.hs', 3011),
     ]
 }

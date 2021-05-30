@@ -1,12 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module StringUpdate where
+module EnterBoolean where
 
-import Task (update)
+import Task (Task (..), enter)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
 main :: IO ()
-main = visualizeTask <| update ("Hello" :: Text)
+main = visualizeTask <| (enter :: Task h Bool)

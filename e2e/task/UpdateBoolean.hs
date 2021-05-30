@@ -1,7 +1,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module BooleanUpdate where
+module UpdateBoolean where
 
 import Task (update)
 import Visualize (visualizeTask)

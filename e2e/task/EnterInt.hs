@@ -1,11 +1,11 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module IntUpdate where
+module EnterInt where
 
-import Task (update)
+import Task (Task (..), enter)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
 main :: IO ()
-main = visualizeTask <| update (42 :: Int)
+main = visualizeTask <| (enter :: Task h Int)
