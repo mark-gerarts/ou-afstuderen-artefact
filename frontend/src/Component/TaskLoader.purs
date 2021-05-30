@@ -237,30 +237,28 @@ renderEditor name (Boolean value) =
     []
     [ HH.div []
         [ HH.label
-            [ css "checkbox" ]
+            [ css "radio" ]
             [ HH.input
-                [ css "checkbox"
-                , HP.required true
+                [ HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.checked (not value)
                 , HP.name "radiobuttonTrueFalse"
                 , HE.onChange \_ -> UpdateInput name (Boolean false)
                 ]
-            , HH.text "false"
+            , HH.text " False"
             ]
         ]
     , HH.div []
         [ HH.label
-            [ css "checkbox" ]
+            [ css "radio" ]
             [ HH.input
-                [ css "checkbox"
-                , HP.required true
+                [ HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.checked value
                 , HP.name "radiobuttonTrueFalse"
                 , HE.onChange \_ -> UpdateInput name (Boolean true)
                 ]
-            , HH.text "true"
+            , HH.text " True"
             ]
         ]
     ]
@@ -287,28 +285,26 @@ renderEditorEnter name (Boolean _) =
     []
     [ HH.div []
         [ HH.label
-            [ css "checkbox" ]
+            [ css "radio" ]
             [ HH.input
-                [ css "checkbox"
-                , HP.required true
+                [ HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.name "radiobuttonTrueFalse"
                 , HE.onChange \_ -> UpdateInput name (Boolean false)
                 ]
-            , HH.text "false"
+            , HH.text " False"
             ]
         ]
     , HH.div []
         [ HH.label
-            [ css "checkbox" ]
+            [ css "radio" ]
             [ HH.input
-                [ css "checkbox"
-                , HP.required true
+                [ HP.required true
                 , HP.type_ HP.InputRadio
                 , HP.name "radiobuttonTrueFalse"
                 , HE.onChange \_ -> UpdateInput name (Boolean true)
                 ]
-            , HH.text "true"
+            , HH.text " True"
             ]
         ]
     ]
