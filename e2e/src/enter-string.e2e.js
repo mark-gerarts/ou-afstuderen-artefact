@@ -27,8 +27,7 @@ describe('string enter', () => {
         const [request, response] = await Promise.all([
             page.waitForRequest('**/interact'),
             page.waitForResponse('**/interact'),
-            page.fill('input[type="text"]', 'This is the new value'),
-            page.click('.btn-update-submit')
+            page.fill('input[type="text"]', 'This is the new value')
         ]);
 
         expect(request.postDataJSON().value).toBe('This is the new value');

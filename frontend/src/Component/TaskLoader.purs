@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInput, selectInputDescription, taskToArray, updateInput)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInput, selectInputDescription, taskToArray)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form (booleanInput, integerInput, textInput)
 import Component.HTML.Utils (css)
@@ -15,9 +15,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Web.Event.Event as Event
-import Web.Event.Internal.Types (Event)
-import Web.UIEvent.MouseEvent (toEvent)
 
 type State
   = { isLoading :: Boolean
@@ -28,8 +25,7 @@ type State
 
 data Action
   = FetchInitialTask
-  | UpdateInput Name Value
-  | Interact Input Event
+  | Interact Input
   | LogState -- For debug purposes...
   | Reset
 
@@ -65,13 +61,9 @@ handleAction Reset = do
 
 handleAction LogState = H.get >>= logShow
 
-handleAction (Interact input event) = do
-  H.liftEffect $ Event.preventDefault event
+handleAction (Interact input) = do
   taskResp <- H.liftAff $ interact input
   setFromTaskResponse taskResp
-
-handleAction (UpdateInput id x) = do
-  H.modify_ \s -> s { possibleInputs = updateInput id x <$> s.possibleInputs }
 
 setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
 setFromTaskResponse taskResp = case taskResp of
@@ -110,29 +102,13 @@ renderTaskWithInputs task possibleInputs inputDescriptions =
 
 renderTask :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
 renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
-  let
-    inputWanted :: Value
-    inputWanted = case selectInput id possibleInputs of
-      Insert _ value' -> value'
-      Option _ _ -> String "Should not be possible?"
-  in
-    Bulma.panel ("Update Task [" <> show name <> "]")
-      ( HH.form
-          [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
-          [ HH.div [ css "field" ]
-              [ HH.label_ [ HH.text ("Value: ") ]
-              , HH.div [ css "control" ]
-                  [ renderEditor name value ]
-              ]
-          , HH.div [ css "field is-grouped" ]
-              [ HH.div [ css "control" ]
-                  [ HH.button
-                      [ css "button is-link btn-update-submit" ]
-                      [ HH.text "Submit" ]
-                  ]
-              ]
-          ]
-      )
+  Bulma.panel ("Update Task [" <> show name <> "]")
+    ( HH.div [ css "field" ]
+        [ HH.label_ [ HH.text ("Value: ") ]
+        , HH.div [ css "control" ]
+            [ renderEditor id value ]
+        ]
+    )
 
 renderTask (Edit name (View value)) _ _ =
   Bulma.panel ("View Task [" <> show name <> "]")
@@ -159,20 +135,10 @@ renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
       otherwise -> String "should not be possible?"
   in
     Bulma.panel ("Enter Task [" <> show name <> "]")
-      ( HH.form
-          [ HE.onSubmit \e -> Interact (Insert id inputWanted) e, css "control" ]
-          [ HH.div [ css "field" ]
-              [ HH.label_ [ HH.text ("Value: ") ]
-              , HH.div [ css "control" ]
-                  [ renderEditorEnter name typeOfEditor ]
-              ]
-          , HH.div [ css "field is-grouped" ]
-              [ HH.div [ css "control" ]
-                  [ HH.button
-                      [ css "button is-link btn-update-submit" ]
-                      [ HH.text "Submit" ]
-                  ]
-              ]
+      ( HH.div [ css "field" ]
+          [ HH.label_ [ HH.text ("Value: ") ]
+          , HH.div [ css "control" ]
+              [ renderEditorEnter id typeOfEditor ]
           ]
       )
 
@@ -212,37 +178,37 @@ renderTask (Fail) _ _ =
   Bulma.panel ("Fail task")
     (HH.p_ [ HH.text $ show Fail ])
 
-renderEditor :: forall a. Name -> Value -> HH.HTML a Action
-renderEditor name (String value) =
+renderEditor :: forall a. Int -> Value -> HH.HTML a Action
+renderEditor id (String value) =
   textInput
     (Just value)
-    (\s -> UpdateInput name (String s))
+    (\s -> Interact (Insert id (String s)))
 
-renderEditor name (Int value) =
+renderEditor id (Int value) =
   integerInput
     (Just value)
-    (\i -> UpdateInput name (Int i))
+    (\i -> Interact (Insert id (Int i)))
 
-renderEditor name (Boolean value) =
+renderEditor id (Boolean value) =
   booleanInput
     (Just value)
-    (\b -> UpdateInput name (Boolean b))
+    (\b -> Interact (Insert id (Boolean b)))
 
-renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
-renderEditorEnter name (String _) =
+renderEditorEnter :: forall a. Int -> Value -> HH.HTML a Action
+renderEditorEnter id (String _) =
   textInput
     Nothing
-    (\s -> UpdateInput name (String s))
+    (\s -> Interact (Insert id (String s)))
 
-renderEditorEnter name (Int _) =
+renderEditorEnter id (Int _) =
   integerInput
     Nothing
-    (\i -> UpdateInput name (Int i))
+    (\i -> Interact (Insert id (Int i)))
 
-renderEditorEnter name (Boolean _) =
+renderEditorEnter id (Boolean _) =
   booleanInput
     Nothing
-    (\b -> UpdateInput name (Boolean b))
+    (\b -> Interact (Insert id (Boolean b)))
 
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =
@@ -256,7 +222,7 @@ renderInputs inputDescriptions =
 renderInput :: forall a. InputDescription -> HH.HTML a Action
 renderInput (OptionDescription name label) =
   HH.button
-    [ css "button is-primary", HE.onClick \e -> Interact (Option name label) (toEvent e) ]
+    [ css "button is-primary", HE.onClick \e -> Interact (Option name label) ]
     [ HH.text label ]
 
 renderInput _ = HH.div_ []

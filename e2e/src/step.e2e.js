@@ -25,7 +25,6 @@ describe('step', () => {
         // Explicitly set the value
         const newValue = Math.floor(Math.random() * 100);
         await page.fill('input[type="number"]', newValue.toString());
-        await page.click('.btn-update-submit');
         await page.click(continueButtonSelector);
         await expect(page).toEqualText('.panel-block p', (newValue + 1).toString())
     });

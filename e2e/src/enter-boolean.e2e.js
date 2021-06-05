@@ -28,8 +28,7 @@ describe('boolean enter', () => {
         const [request, response] = await Promise.all([
             page.waitForRequest('**/interact'),
             page.waitForResponse('**/interact'),
-            page.click('input[type="radio"]:first-child'),
-            page.click('.btn-update-submit')
+            page.click('input[type="radio"]:first-child')
         ]);
 
         // Check if the value sent to the server is false, since we unchecked

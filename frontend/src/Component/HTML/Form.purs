@@ -2,13 +2,13 @@ module Component.HTML.Form where
 
 import Prelude
 import Component.HTML.Utils (css)
+import Data.Array ((:))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..), fromJust)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
-import Data.Array ((:))
 
 textInput :: forall a b. Maybe String -> (String -> b) -> HH.HTML a b
 textInput value onValueInput =
