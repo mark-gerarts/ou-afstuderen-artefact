@@ -99,10 +99,12 @@ renderTaskWithInputs task inputDescriptions =
 renderTask :: forall a. Task -> Array InputDescription -> HH.HTML a Action
 renderTask (Edit name@(Named id) (Update value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
-    ( HH.div [ css "field" ]
-        [ HH.label_ [ HH.text ("Value: ") ]
-        , HH.div [ css "control" ]
-            [ renderEditor id value ]
+    ( HH.div [ css "control" ]
+        [ HH.div [ css "field" ]
+            [ HH.label_ [ HH.text ("Value: ") ]
+            , HH.div [ css "control" ]
+                [ renderEditor id value ]
+            ]
         ]
     )
 
@@ -126,10 +128,12 @@ renderTask (Edit name@(Named id) Enter) inputDescriptions =
       _ -> String "should not be possible?"
   in
     Bulma.panel ("Enter Task [" <> show name <> "]")
-      ( HH.div [ css "field" ]
-          [ HH.label_ [ HH.text ("Value: ") ]
-          , HH.div [ css "control" ]
-              [ renderEditorEnter id typeOfEditor ]
+      ( HH.div [ css "control" ]
+          [ HH.div [ css "field" ]
+              [ HH.label_ [ HH.text ("Value: ") ]
+              , HH.div [ css "control" ]
+                  [ renderEditorEnter id typeOfEditor ]
+              ]
           ]
       )
 
