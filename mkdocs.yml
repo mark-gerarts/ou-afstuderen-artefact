@@ -1,5 +1,6 @@
 site_name: TopHat Visualizations
 theme: readthedocs
+repo_url: https://github.com/mark-gerarts/ou-afstuderen-artefact
 nav:
   - Home: index.md
   - Installation & usage: usage.md
