@@ -74,5 +74,8 @@ in mkShell {
 
     # Tests
     docker
+
+    # Docs
+    mkdocs
   ];
 }
