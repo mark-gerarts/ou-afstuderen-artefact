@@ -7,6 +7,8 @@ This library exposes the `visualizeTask` function, which creates a web
 application for the given task. Examples can be found in the [`app`](./app)
 folder.
 
+[Rendered documentation](https://mark-gerarts.github.io/ou-afstuderen-artefact/)
+
 ## A note on Prelude
 
 TopHat has its own Prelude module which is for a part a reexport of
