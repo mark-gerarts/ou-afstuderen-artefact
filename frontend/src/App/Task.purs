@@ -153,24 +153,6 @@ taskToArray (Step t) array = taskToArray t array
 
 taskToArray _ _ = []
 
-isSelectedInput :: Int -> Input -> Boolean
-isSelectedInput id' (Insert id _) = id == id'
-
-isSelectedInput _ _ = false
-
-filterInputs :: Int -> Array Input -> Maybe Input
-filterInputs id inputs = head $ filter (isSelectedInput id) inputs
-
-selectInput :: Int -> Array Input -> Input
-selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
-
-updateInput :: Name -> Value -> Input -> Input
-updateInput (Named id) newValue input@(Insert id' _)
-  | id == id' = Insert id newValue
-  | otherwise = input
-
-updateInput _ _ input = input
-
 data InputDescription
   = InsertDescription Int String
   | OptionDescription Name String

@@ -2,7 +2,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInput, selectInputDescription, taskToArray)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form (booleanInput, integerInput, textInput)
 import Component.HTML.Utils (css)
@@ -19,7 +19,6 @@ import Halogen.HTML.Properties as HP
 type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
-    , possibleInputs :: Array Input
     , inputDescriptions :: Array InputDescription
     }
 
@@ -45,7 +44,6 @@ taskLoader =
   initialState _ =
     { isLoading: true
     , currentTask: Nothing
-    , possibleInputs: []
     , inputDescriptions: []
     }
 
@@ -72,7 +70,6 @@ setFromTaskResponse taskResp = case taskResp of
     H.modify_ \s ->
       s
         { currentTask = Just task
-        , possibleInputs = taskToArray task []
         , inputDescriptions = inputs
         }
 
@@ -80,9 +77,8 @@ render :: forall a. State -> HH.HTML a Action
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
   { currentTask: Just task
-  , possibleInputs: possibleInputs
   , inputDescriptions: inputDescriptions
-  } -> renderTaskWithInputs task possibleInputs inputDescriptions
+  } -> renderTaskWithInputs task inputDescriptions
   _ -> renderError
 
 renderLoadingScreen :: forall a. HH.HTML a Action
@@ -95,13 +91,13 @@ renderLoadingScreen =
 renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
-renderTaskWithInputs :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
-renderTaskWithInputs task possibleInputs inputDescriptions =
+renderTaskWithInputs :: forall a. Task -> Array InputDescription -> HH.HTML a Action
+renderTaskWithInputs task inputDescriptions =
   HH.div_
-    [ renderTask task possibleInputs inputDescriptions, renderInputs inputDescriptions ]
+    [ renderTask task inputDescriptions, renderInputs inputDescriptions ]
 
-renderTask :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
-renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
+renderTask :: forall a. Task -> Array InputDescription -> HH.HTML a Action
+renderTask (Edit name@(Named id) (Update value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
     ( HH.div [ css "field" ]
         [ HH.label_ [ HH.text ("Value: ") ]
@@ -110,17 +106,12 @@ renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
         ]
     )
 
-renderTask (Edit name (View value)) _ _ =
+renderTask (Edit name (View value)) _ =
   Bulma.panel ("View Task [" <> show name <> "]")
     (HH.p_ [ HH.text $ show value ])
 
-renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
+renderTask (Edit name@(Named id) Enter) inputDescriptions =
   let
-    inputWanted :: Value
-    inputWanted = case selectInput id possibleInputs of
-      Insert _ value -> value
-      Option _ _ -> String "Should not be possible?"
-
     inputDescriptionWanted :: String
     inputDescriptionWanted = case selectInputDescription id inputDescriptions of
       InsertDescription _ value -> value
@@ -132,7 +123,7 @@ renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
       "<Text>" -> String ""
       "<Int>" -> Int 0
       "<Bool>" -> Boolean false
-      otherwise -> String "should not be possible?"
+      _ -> String "should not be possible?"
   in
     Bulma.panel ("Enter Task [" <> show name <> "]")
       ( HH.div [ css "field" ]
@@ -142,13 +133,13 @@ renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
           ]
       )
 
-renderTask (Edit name Select) _ possibleInputs =
+renderTask (Edit name Select) inputDescriptions =
   let
     id = case name of
       Unnamed -> -1
       (Named id') -> id'
 
-    options = filter (\x -> isOption x && isSelectedInputDescription id x) possibleInputs
+    options = filter (\x -> isOption x && isSelectedInputDescription id x) inputDescriptions
 
     buttons = map renderInput options
   in
@@ -159,22 +150,22 @@ renderTask (Edit name Select) _ possibleInputs =
           ]
       )
 
-renderTask (Edit Unnamed _) _ _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
+renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
-renderTask (Pair t1 t2) possibleInputs inputDescriptions =
+renderTask (Pair t1 t2) inputDescriptions =
   HH.div
     [ css "columns" ]
-    [ HH.div [ css "column" ] [ renderTask t1 possibleInputs inputDescriptions ]
-    , HH.div [ css "column" ] [ renderTask t2 possibleInputs inputDescriptions ]
+    [ HH.div [ css "column" ] [ renderTask t1 inputDescriptions ]
+    , HH.div [ css "column" ] [ renderTask t2 inputDescriptions ]
     ]
 
-renderTask (Step t) possibleInputs inputDescriptions = renderTask t possibleInputs inputDescriptions
+renderTask (Step t) inputDescriptions = renderTask t inputDescriptions
 
-renderTask (Done) _ _ =
+renderTask (Done) _ =
   Bulma.panel ("Done task")
     (HH.p_ [ HH.text $ show Done ])
 
-renderTask (Fail) _ _ =
+renderTask (Fail) _ =
   Bulma.panel ("Fail task")
     (HH.p_ [ HH.text $ show Fail ])
 
@@ -222,7 +213,7 @@ renderInputs inputDescriptions =
 renderInput :: forall a. InputDescription -> HH.HTML a Action
 renderInput (OptionDescription name label) =
   HH.button
-    [ css "button is-primary", HE.onClick \e -> Interact (Option name label) ]
+    [ css "button is-primary", HE.onClick \_ -> Interact (Option name label) ]
     [ HH.text label ]
 
 renderInput _ = HH.div_ []
