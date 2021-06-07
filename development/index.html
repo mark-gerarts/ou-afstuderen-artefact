@@ -65,6 +65,20 @@
             
     <li class="toctree-l2"><a href="#development-setup">Development setup</a></li>
     
+        <ul>
+        
+            <li><a class="toctree-l3" href="#one-time-commands">One-time commands</a></li>
+        
+            <li><a class="toctree-l3" href="#nix">Nix</a></li>
+        
+            <li><a class="toctree-l3" href="#development-flow">Development flow</a></li>
+        
+            <li><a class="toctree-l3" href="#building-a-release">Building a release</a></li>
+        
+            <li><a class="toctree-l3" href="#a-note-on-prelude">A note on Prelude</a></li>
+        
+        </ul>
+    
 
     </ul>
 	    </li>
@@ -115,7 +129,110 @@
             <div class="section">
               
                 <h1 id="development-setup">Development setup</h1>
-<p>@todo</p>
+<h2 id="one-time-commands">One-time commands</h2>
+<p>Run the following once to fetch and build all Haskell dependencies. All commands
+are intended to be run in the project root.</p>
+<pre><code class="language-console">$ stack setup
+$ stack build
+</code></pre>
+<p>Next, fetch all frontend dependencies:</p>
+<pre><code class="language-console">$ npm ci --prefix=frontend
+</code></pre>
+<p>Compile the CSS:</p>
+<pre><code class="language-console">$ npm run css-build-dev --prefix=frontend
+</code></pre>
+<h2 id="nix">Nix</h2>
+<p>Most commands have alternatives for <a href="https://nixos.org/">Nix</a>-users. For
+example:</p>
+<pre><code class="language-console">$ nix-shell --run css-build-dev
+</code></pre>
+<p>Or enter the shell and run your commands from there:</p>
+<pre><code class="language-console">$ nix-shell
+$ css-build-dev
+</code></pre>
+<p>To get a complete overview, take a look at the <code>shell.nix</code> file.</p>
+<h2 id="development-flow">Development flow</h2>
+<h3 id="backend">Backend</h3>
+<p>To run the backend with hot reload enabled we use <code>yesod-bin</code>:</p>
+<pre><code class="language-console">$ stack build yesod-bin # Only needed once
+$ stack exec -- yesod devel
+</code></pre>
+<p>Or alternatively with nix:</p>
+<pre><code class="language-console">$ nix-shell --run serve-backend
+</code></pre>
+<p>This will spin up a server at <a href="http://localhost:3000">localhost:3000</a> and
+automatically rebuild the Haskell part of the application whenever a file is
+changed under the <code>src/</code> directory. Manual building is still needed when making
+changes in the <code>app/</code> folder.</p>
+<p>Note: <code>yesod devel</code> uses <code>app/devel.hs</code> as its entrypoint, not <code>app/Main.hs</code>.</p>
+<p>Sometimes <code>yesod devel</code> borks, and does not build upon first starting the dev
+server. If this happens, simply change and save a project file to force a
+rebuild.</p>
+<h3 id="frontend">Frontend</h3>
+<p>With the backend server up and running, open up a separate terminal and run the
+following to get the frontend development environment up:</p>
+<pre><code class="language-console">$ spago build
+$ npm run serve
+</code></pre>
+<p>Alternatively:</p>
+<pre><code class="language-console">$ nix-shell --run serve-ui
+</code></pre>
+<p>This uses <a href="https://parceljs.org/">Parcel</a> to provide live reloading of the
+frontend. It will automatically open a browser at
+<a href="http://localhost:3001">localhost:3001</a>.</p>
+<p>When the frontend development environment is started this way, it will assume
+the backend is available at port 3000 - which it should be when using <code>yesod devel</code>.</p>
+<p>Spinning up both the backend and frontend is combined in a single Nix alias:</p>
+<pre><code class="language-console">$ nix-shell --run serve-both
+</code></pre>
+<h3 id="vscode">VSCode</h3>
+<p>Set up a <a href="https://code.visualstudio.com/docs/editor/multi-root-workspaces">multi-root
+workspace</a> for
+both the root project directory and the <code>frontend</code> directory. This is needed to
+get the PureScript IDE extension to work correctly.</p>
+<p>For Nix users, keep in mind to start VSCode from the nix-shell environment:</p>
+<pre><code class="language-console">$ nix-shell --run 'code .'
+</code></pre>
+<h3 id="hoogle">Hoogle</h3>
+<p>It's possible to generate a local Hoogle server for the project:</p>
+<pre><code class="language-console">$ stack test --fast --haddock-deps
+$ hoogle generate --local=./
+$ hoogle server --local --port=8080
+</code></pre>
+<p>With nix:</p>
+<pre><code class="language-console">$ nix-shell --run local-hoogle
+</code></pre>
+<p>The local Hoogle server can be found at
+<a href="http://localhost:8080">http://localhost:8080</a>. Grab yourself a cup of coffee if
+it's the first time you run this. Also, the command needs to be run again in
+case of changes in code/dependencies.</p>
+<h2 id="building-a-release">Building a release</h2>
+<p>Building a release (i.e. a non-dev environment) involves:</p>
+<ul>
+<li>Building the CSS</li>
+<li>Compiling the PureScript application</li>
+<li>Building the Haskell executable</li>
+</ul>
+<pre><code class="language-console">$ npm run build-prod --prefix=frontend
+$ stack build
+</code></pre>
+<p>With this in place you can use <code>stack run</code> to start the application at
+<a href="http://localhost:3000">http://localhost:3000</a>. To use a different port, set the
+<code>PORT</code> environment variable:</p>
+<pre><code class="language-console">$ PORT=80 stack run
+</code></pre>
+<h2 id="a-note-on-prelude">A note on Prelude</h2>
+<p>TopHat has its own Prelude module which is for a part a reexport of
+<a href="https://github.com/kowainik/relude">Relude</a>. It is possible to depend on TopHat
+as a library and still use the plain old Prelude using
+<a href="https://cabal.readthedocs.io/en/3.4/cabal-package.html#pkg-field-mixins">mixins</a>,
+but unfortunately <a href="https://github.com/haskell/haskell-language-server/issues/1415">this breaks IDE
+integration</a>.
+The solution is to rely on Cabal instead of Stack in <code>hie.yaml</code>, but this
+requires manually installing TopHat, since it is not available on Hackage.</p>
+<p>Instead we've chosen to simply not use mixins, and to just embrace the Prelude
+of Tophat/Relude. Since Relude uses Text, we've also added <code>OverloadedStrings</code> as
+a global flag.</p>
               
             </div>
           </div>

@@ -70,6 +70,16 @@
             
     <li class="toctree-l2"><a href="#testing">Testing</a></li>
     
+        <ul>
+        
+            <li><a class="toctree-l3" href="#installation-usage">Installation &amp; usage</a></li>
+        
+            <li><a class="toctree-l3" href="#the-non-docker-way">The non-docker way</a></li>
+        
+            <li><a class="toctree-l3" href="#developing-tests">Developing tests</a></li>
+        
+        </ul>
+    
 
     </ul>
 	    </li>
@@ -115,7 +125,54 @@
             <div class="section">
               
                 <h1 id="testing">Testing</h1>
-<p>@todo</p>
+<p>We've created an end-to-end test suite using
+<a href="https://github.com/microsoft/playwright">Playwright</a> to provide browser
+interaction, combined with <a href="https://jestjs.io/">jest</a> as test runner.</p>
+<h2 id="installation-usage">Installation &amp; usage</h2>
+<p>The test suite is dockerized, so we could (hypothetically for now) include it in
+CI/CD. In order to run it:</p>
+<p>Build the container:</p>
+<pre><code class="language-console">$ docker build . -f Dockerfile.e2e -t e2e-tests
+</code></pre>
+<p>Note: this takes a while to run for the first time, because:</p>
+<ul>
+<li>We start from the stack-build image, which is large (~4GB)</li>
+<li>We install playwright, which comes with Chromium included</li>
+<li>We have to install and compile all Haskell dependencies</li>
+</ul>
+<p>Run the test suite:</p>
+<pre><code class="language-console">$ docker run --rm e2e-tests
+</code></pre>
+<p>With nix, both commands are combined in <code>nix-shell --run e2e</code>.</p>
+<h2 id="the-non-docker-way">The non-docker way</h2>
+<p>Since the dockerized version basically duplicates our local development setup,
+you could just install the test setup locally, which would be faster:</p>
+<pre><code class="language-console">$ npm ci --prefix=e2e
+$ npm run test --prefix=e2e
+</code></pre>
+<h2 id="developing-tests">Developing tests</h2>
+<p>What works easiest for me is:</p>
+<p>First, start a local server for the page you're testing:</p>
+<pre><code class="language-console">$ stack runghc e2e/task/UpdateString.hs
+</code></pre>
+<p>This allows you to check what is going on, and play around with the selectors
+etc that you're using in the tests.</p>
+<p>Then run the test suite either directly or using docker, as explained above.</p>
+<p>To create a new test suite:</p>
+<ul>
+<li>Create a new test suite: <code>e2e/src/your-new-test.e2e.js</code></li>
+<li>Create a new task to test: <code>e2e/task/YourNewTest.hs</code></li>
+<li>Add a new entry to spin up a server in <code>e2e/jest-playwright.config.js</code></li>
+<li>Make sure you use a unique port number</li>
+<li>Use this port in your test suite</li>
+</ul>
+<p>The following links are useful when writing tests:</p>
+<ul>
+<li>Interacting with the browser: <a href="https://playwright.dev/docs/intro">Playwright docs</a></li>
+<li>All available matchers (<code>expect(..)</code>): <a href="https://jestjs.io/docs/expect">Jest docs</a></li>
+<li>Additional common matchers:
+  <a href="https://github.com/playwright-community/expect-playwright#expect-playwright">expect-playwright</a></li>
+</ul>
               
             </div>
           </div>
