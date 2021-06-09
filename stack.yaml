@@ -88,3 +88,15 @@ ghc-options:
 nix:
   packages:
     - zlib
+
+build:
+  # NOTE: global usage of haddock can cause build failures when documentation is
+  # incorrectly formatted.  This could also affect scripts which use stack.
+  haddock: true
+  haddock-arguments:
+    haddock-args: []      # Additional arguments passed to haddock, --haddock-arguments
+    # haddock-args:
+    # - "--css=/home/user/my-css"
+  open-haddocks: false    # --open
+  haddock-deps: false     # if unspecified, defaults to true if haddock is set
+  haddock-internal: false

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Visualize (visualizeTask, visualizeTaskDevel) where
 
 import Application (State (..), application)

@@ -2,6 +2,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+{-|
+Module      : Communication
+Description : Module to convert data types into JSON and visa versa.
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to convert JSONTask (combination of Task and JsonInput) into JSON. 
+This module also provides functions to convert JSON version of inputs to JsonInput.
+-}
 
 module Communication (JsonTask (..), JsonInput (..)) where
 
@@ -16,12 +30,16 @@ newtype NotImplementedException = NotImplementedException Text deriving (Debug)
 
 instance Exception NotImplementedException
 
--- We wrap the Task in a new datatype and use regular functions to encode them
--- to JSON to prevent orphaned instances.
+{-|
+  JsonTask: We wrap the Task in a new datatype and use regular functions to encode them
+  to JSON to prevent orphaned instances.
+-} 
 data JsonTask where -- @todo: find a better name for this.
+  -- | JsonTask takes a Task and a List of Input as a argument and return a JsonTask
   JsonTask :: ToJSON t => Task h t -> List (Input Dummy) -> JsonTask
 
 instance ToJSON JsonTask where
+  -- | function to convert JsonTask to JSON
   toJSON (JsonTask task inputs) =
     object
       [ "task" .= taskToJSON task,
@@ -60,14 +78,6 @@ nameToJSON :: Name -> Value
 nameToJSON (Named name) = toJSON name
 nameToJSON Unnamed = Null
 
-parseName :: Value -> Parser Name
-parseName (Number i) =
-  case toBoundedInteger i of
-    Just i' -> return (Named i')
-    Nothing -> parseFail "Unexpected name"
-parseName Null = return Unnamed
-parseName _ = parseFail "Unexpected name"
-
 editorToJSON :: Editor h t -> Value
 editorToJSON (Update t) =
   object
@@ -90,10 +100,28 @@ editorToJSON (Select _) =
 editorToJSON (Change _) = throw (NotImplementedException "Editor type 'Change' is not supported yet")
 editorToJSON (Watch _) = throw (NotImplementedException "Editor type 'Watch' is not supported yet")
 
+inputToJSON :: Input Dummy -> Value
+inputToJSON (Insert id value) =
+  object
+    [ "type" .= String "insert",
+      "id" .= id,
+      "value" .= display value
+    ]
+inputToJSON (Option name label) =
+  object
+    [ "type" .= String "option",
+      "name" .= nameToJSON name,
+      "label" .= label
+    ]
+
+{-|
+  JsonInput: input from frontend (in JSON) is converted to JsonInput
+-}    
 data JsonInput where
   JsonInput :: Input Concrete -> JsonInput
 
 instance FromJSON JsonInput where
+  -- | function to convert JSON to JsonInput
   parseJSON =
     withObject "Input" <| \obj -> do
       inputType <- obj .: "type"
@@ -117,16 +145,10 @@ parseConcrete (Number x) =
 parseConcrete (Bool b) = return (Concrete b)
 parseConcrete _ = parseFail "Unsupported type"
 
-inputToJSON :: Input Dummy -> Value
-inputToJSON (Insert id value) =
-  object
-    [ "type" .= String "insert",
-      "id" .= id,
-      "value" .= display value
-    ]
-inputToJSON (Option name label) =
-  object
-    [ "type" .= String "option",
-      "name" .= nameToJSON name,
-      "label" .= label
-    ]
+parseName :: Value -> Parser Name
+parseName (Number i) =
+  case toBoundedInteger i of
+    Just i' -> return (Named i')
+    Nothing -> parseFail "Unexpected name"
+parseName Null = return Unnamed
+parseName _ = parseFail "Unexpected name"
