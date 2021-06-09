@@ -5,6 +5,18 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module      : Application
+Description : Module to load the application
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to load the application: set the server and define the handlers (initial tasks, interact, reset and static files).
+-}
+
 module Application (application, State (..)) where
 
 import Communication (JsonInput (..), JsonTask (..))
@@ -31,6 +43,12 @@ import Task.Input (Concrete (..), Dummy, Input (..))
 import Task.Observe (inputs)
 import Task.Run (NotApplicable, Steps, initialise, interact)
 
+{-|
+  State is used to keep the current task and the original task. 
+  currentTask: After sending an Input to Tophat, a new Task is returned. This task is kept in currentTask.
+  originalTask: The original task contains the initial task. This task will be reloaded after a reset.
+  initialised: used to determine if State is initialised.
+-} 
 data State h t = State
   { currentTask :: TVar (Task RealWorld t),
     initialised :: Bool,
@@ -58,6 +76,27 @@ newtype RawHtml = RawHtml {unRaw :: BS.ByteString}
 
 instance MimeRender HTML RawHtml where
   mimeRender _ = unRaw
+
+interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
+interactIO i t = withIO <| interact i t
+
+initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
+initialiseIO t = withIO <| initialise t
+
+inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
+inputsIO t = withIO <| inputs t
+
+withIO ::
+  Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
+  IO a
+withIO =
+  writeToIO
+    >> supplyToIO
+    >> readToIO
+    >> logToIO @NotApplicable
+    >> logToIO @Steps
+    >> allocToIO
+    >> runM
 
 server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
@@ -122,37 +161,8 @@ server _ = taskServer :<|> staticServer
     assetsHandler :: Tagged (AppM h t) Application
     assetsHandler = serveDirectoryWebApp "frontend/prod"
 
-interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
-interactIO i t = withIO <| interact i t
-
-initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
-initialiseIO t = withIO <| initialise t
-
-inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
-inputsIO t = withIO <| inputs t
-
-withIO ::
-  Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
-  IO a
-withIO =
-  writeToIO
-    >> supplyToIO
-    >> readToIO
-    >> logToIO @NotApplicable
-    >> logToIO @Steps
-    >> allocToIO
-    >> runM
-
 apiProxy :: State h t -> Proxy API
 apiProxy _ = Proxy
-
-application :: ToJSON t => State h t -> Application
-application s =
-  corsPolicy
-    <| serve (apiProxy s)
-    <| hoistServer (apiProxy s) (nt s) (server s)
-  where
-    nt s' x = runReaderT x s'
 
 corsPolicy :: Middleware
 corsPolicy = cors (const <| Just policy)
@@ -163,3 +173,12 @@ corsPolicy = cors (const <| Just policy)
           corsOrigins = Nothing,
           corsRequestHeaders = ["authorization", "content-type"]
         }
+
+-- | Create Application. The function takes a State as argument and returns an Application.
+application :: ToJSON t => State h t -> Application
+application s =
+  corsPolicy
+    <| serve (apiProxy s)
+    <| hoistServer (apiProxy s) (nt s) (server s)
+  where
+    nt s' x = runReaderT x s'

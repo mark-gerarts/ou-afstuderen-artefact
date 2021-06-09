@@ -98,5 +98,5 @@ build:
     # haddock-args:
     # - "--css=/home/user/my-css"
   open-haddocks: false    # --open
-  haddock-deps: false     # if unspecified, defaults to true if haddock is set
+  haddock-deps: true     # if unspecified, defaults to true if haddock is set
   haddock-internal: false

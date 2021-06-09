@@ -31,21 +31,21 @@ newtype NotImplementedException = NotImplementedException Text deriving (Debug)
 instance Exception NotImplementedException
 
 {-|
-  JsonTask: We wrap the Task in a new datatype and use regular functions to encode them
+  We wrap the Task in a new datatype JsonTask and use regular functions to encode them
   to JSON to prevent orphaned instances.
 -} 
 data JsonTask where -- @todo: find a better name for this.
-  -- | JsonTask takes a Task and a List of Input as a argument and return a JsonTask
+  -- | JsonTask takes a Task and a List of Input as a argument and returns a JsonTask
   JsonTask :: ToJSON t => Task h t -> List (Input Dummy) -> JsonTask
 
+-- | Convert JsonTask into JSON
 instance ToJSON JsonTask where
-  -- | function to convert JsonTask to JSON
   toJSON (JsonTask task inputs) =
     object
       [ "task" .= taskToJSON task,
         "inputs" .= map inputToJSON inputs
       ]
-
+      
 taskToJSON :: Task h t -> Value
 taskToJSON (Edit name editor) =
   object
@@ -115,13 +115,13 @@ inputToJSON (Option name label) =
     ]
 
 {-|
-  JsonInput: input from frontend (in JSON) is converted to JsonInput
+  Input from frontend (in JSON) is converted to JsonInput
 -}    
 data JsonInput where
   JsonInput :: Input Concrete -> JsonInput
 
+-- | Convert JSON objects into JsonInput
 instance FromJSON JsonInput where
-  -- | function to convert JSON to JsonInput
   parseJSON =
     withObject "Input" <| \obj -> do
       inputType <- obj .: "type"

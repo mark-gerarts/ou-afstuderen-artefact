@@ -1,5 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module      : Visualize
+Description : Module to load web server with initial task.
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to run a web server with a given task. It is possible to load a development or a production environment.
+-}
+
 module Visualize (visualizeTask, visualizeTaskDevel) where
 
 import Application (State (..), application)
@@ -17,23 +29,8 @@ import Task (RealWorld, Task)
 defaultPort :: [Char]
 defaultPort = "3000"
 
-visualizeTask :: ToJSON t => Task RealWorld t -> IO ()
-visualizeTask task = do
-  port <- lookupEnv "PORT"
-  let realPort = toInt <| port ?: defaultPort
-  putTextLn <| "Starting webserver at http://localhost:" <> display realPort
-  app <- initApp task
-  run realPort app
-
-visualizeTaskDevel :: ToJSON t => Task RealWorld t -> IO ()
-visualizeTaskDevel task =
-  race_ watchTermFile <| do
-    innerPort <- getEnv "PORT"
-    displayPort <- getEnv "DISPLAY_PORT"
-    putTextLn <| "Running in development mode on port " <> toText innerPort
-    putTextLn <| "But you should connect to port " <> toText displayPort
-    app <- initApp task
-    run (toInt innerPort) (logStdoutDev app)
+toInt :: ToText a => a -> Int
+toInt = toText >> scan >> fromJust
 
 initApp :: ToJSON t => Task RealWorld t -> IO Application
 initApp task = do
@@ -58,6 +55,26 @@ watchTermFile =
         else do
           threadDelay 100000
           loop
+{-|
+  Run given task in development environment.
+-} 
+visualizeTaskDevel :: ToJSON t => Task RealWorld t -> IO ()
+visualizeTaskDevel task =
+  race_ watchTermFile <| do
+    innerPort <- getEnv "PORT"
+    displayPort <- getEnv "DISPLAY_PORT"
+    putTextLn <| "Running in development mode on port " <> toText innerPort
+    putTextLn <| "But you should connect to port " <> toText displayPort
+    app <- initApp task
+    run (toInt innerPort) (logStdoutDev app)
 
-toInt :: ToText a => a -> Int
-toInt = toText >> scan >> fromJust
+{-|
+  Run given task in production environment.
+-} 
+visualizeTask :: ToJSON t => Task RealWorld t -> IO ()
+visualizeTask task = do
+  port <- lookupEnv "PORT"
+  let realPort = toInt <| port ?: defaultPort
+  putTextLn <| "Starting webserver at http://localhost:" <> display realPort
+  app <- initApp task
+  run realPort app    
