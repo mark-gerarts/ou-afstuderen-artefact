@@ -55,37 +55,48 @@ data State h t = State
     originalTask :: Task RealWorld t
   }
 
+-- defining endpoints, request and response formats related to Tasks
 type TaskAPI =
   "initial-task" :> Get '[JSON] JsonTask
     :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
     :<|> "reset" :> Get '[JSON] JsonTask
 
+-- defining endpoints, request and response formats related to static files
 type StaticAPI = Get '[HTML] RawHtml :<|> Raw
 
+-- combined API
 type API = TaskAPI :<|> StaticAPI
 
+-- Monad to run handlers
 type AppM h t = ReaderT (State h t) Handler
 
 -- We define a custom HTML type so we can render the index.html file.
 data HTML = HTML
 
+-- needed to render index.html
 instance Accept HTML where
   contentType _ = "text" // "html" /: ("charset", "utf-8")
 
+-- needed to render index.html
 newtype RawHtml = RawHtml {unRaw :: BS.ByteString}
 
+-- needed to render index.html
 instance MimeRender HTML RawHtml where
   mimeRender _ = unRaw
 
+-- Function that takes an Input and a Task as argument and returns a new Task (Communication with TopHat).
 interactIO :: Input Concrete -> Task RealWorld a -> IO (Task RealWorld a)
 interactIO i t = withIO <| interact i t
 
+-- Function to initialise Task (Communication with Tophat).
 initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
 initialiseIO t = withIO <| initialise t
 
+-- Function takes a Task as an argument and returns List of Inputs (Communication with Tophat).
 inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
 inputsIO t = withIO <| inputs t
 
+-- Polysemy
 withIO ::
   Sem '[Write RealWorld, Supply Nat, Read RealWorld, Log NotApplicable, Log Steps, Alloc RealWorld, Embed IO] a ->
   IO a
@@ -98,15 +109,18 @@ withIO =
     >> allocToIO
     >> runM
 
+-- Defining webservice to handle requests: defining handlers
 server :: ToJSON t => State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
   where
+    -- defining web server for tasks
     taskServer :: ToJSON t => ServerT TaskAPI (AppM h t)
     taskServer = do
       initialTaskHandler
         :<|> interactHandler
         :<|> resetHandler
 
+    -- handler that returns the initialised task
     initialTaskHandler :: ToJSON t => AppM h t JsonTask
     initialTaskHandler = do
       initialisedTask <- getInitialisedTask
@@ -124,6 +138,7 @@ server _ = taskServer :<|> staticServer
                 atomically <| writeTVar t initialisedTask
                 return initialisedTask
 
+    -- handler that takes a JsonInput and returns a new task.
     interactHandler :: ToJSON t => JsonInput -> AppM h t JsonTask
     interactHandler (JsonInput input) = do
       State {currentTask = t} <- ask
@@ -134,6 +149,7 @@ server _ = taskServer :<|> staticServer
         possibleInputs <- inputsIO newTask
         return (JsonTask newTask possibleInputs)
 
+    -- handler that returns the original task.
     resetHandler :: ToJSON t => AppM h t JsonTask
     resetHandler = do
       State {currentTask = t, originalTask = t_o} <- ask
@@ -143,6 +159,7 @@ server _ = taskServer :<|> staticServer
         possibleInputs <- inputsIO initialisedTask
         return (JsonTask initialisedTask possibleInputs)
 
+    -- defining webservice for static files
     staticServer :: ServerT StaticAPI (AppM h t)
     staticServer = indexHandler :<|> assetsHandler
 
@@ -161,9 +178,11 @@ server _ = taskServer :<|> staticServer
     assetsHandler :: Tagged (AppM h t) Application
     assetsHandler = serveDirectoryWebApp "frontend/prod"
 
+-- boilerplate code for type inference
 apiProxy :: State h t -> Proxy API
 apiProxy _ = Proxy
 
+-- Frontend is running at another port. corsPolicy is needed to allow requests from frontend.
 corsPolicy :: Middleware
 corsPolicy = cors (const <| Just policy)
   where
@@ -174,11 +193,13 @@ corsPolicy = cors (const <| Just policy)
           corsRequestHeaders = ["authorization", "content-type"]
         }
 
--- | Create Application. The function takes a State as argument and returns an Application.
+-- | Create abstract web Application. The function takes a State as argument and returns an Application.
 application :: ToJSON t => State h t -> Application
 application s =
   corsPolicy
     <| serve (apiProxy s)
+    -- hoistServer transforms ServerT API AppM into ServerT API Handler
     <| hoistServer (apiProxy s) (nt s) (server s)
   where
+    -- Function to transform AppM into Handler
     nt s' x = runReaderT x s'

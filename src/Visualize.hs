@@ -32,6 +32,7 @@ defaultPort = "3000"
 toInt :: ToText a => a -> Int
 toInt = toText >> scan >> fromJust
 
+-- function that takes a task and returns an IO Application
 initApp :: ToJSON t => Task RealWorld t -> IO Application
 initApp task = do
   currentTaskTVar <- atomically <| newTVar task
@@ -44,6 +45,7 @@ initApp task = do
       app = application initialState
   return app
 
+-- function needed for development purposes.
 watchTermFile :: IO ()
 watchTermFile =
   loop
