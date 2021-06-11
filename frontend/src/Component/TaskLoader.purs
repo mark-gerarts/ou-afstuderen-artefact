@@ -1,3 +1,15 @@
+{-|
+Module      : Component.TaskLoader
+Description : Module to render User Interface
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to render the User Interface of a task
+-}
+
 module Component.TaskLoader (taskLoader) where
 
 import Prelude
@@ -19,6 +31,7 @@ import Web.Event.Event as Event
 import Web.Event.Internal.Types (Event)
 import Web.UIEvent.MouseEvent (toEvent)
 
+-- The State holds a boolean to determine if a task is loading. It also holds the tasks that is rendered, the inputs of editors (possible inputs) and the types of Enter editors (inputDescriptions).
 type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
@@ -53,6 +66,7 @@ taskLoader =
     , inputDescriptions: []
     }
 
+-- function that defines actions.
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction FetchInitialTask = do
   taskResp <- H.liftAff getInitialTask
@@ -73,6 +87,7 @@ handleAction (Interact input event) = do
 handleAction (UpdateInput id x) = do
   H.modify_ \s -> s { possibleInputs = updateInput id x <$> s.possibleInputs }
 
+-- function that sets te State.
 setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
 setFromTaskResponse taskResp = case taskResp of
   Left err -> logShow err
@@ -84,6 +99,7 @@ setFromTaskResponse taskResp = case taskResp of
         , inputDescriptions = inputs
         }
 
+-- Function that renders the user interface. Takes a state as argument.
 render :: forall a. State -> HH.HTML a Action
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
@@ -103,14 +119,18 @@ renderLoadingScreen =
 renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
+-- Function that renders the user interface of a given Task. Function also renders buttons that do not belong to Select tasks, like Continue.
 renderTaskWithInputs :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
 renderTaskWithInputs task possibleInputs inputDescriptions =
   HH.div_
     [ renderTask task possibleInputs inputDescriptions, renderInputs inputDescriptions ]
 
+-- Render user interface for each support task type. Takes a task, an array of Input and an array of InputDescription as arguments.
+-- The difference between the rendering of Update and Enter tasks: the predefined values.  
 renderTask :: forall a. Task -> Array Input -> Array InputDescription -> HH.HTML a Action
 renderTask (Edit name@(Named id) (Update value)) possibleInputs _ =
   let
+    -- Function that selects the corresponding element of the possibleInputs array. This array is used to store values before the values are sent back to the server.
     inputWanted :: Value
     inputWanted = case selectInput id possibleInputs of
       Insert _ value' -> value'
@@ -140,19 +160,21 @@ renderTask (Edit name (View value)) _ _ =
 
 renderTask (Edit name@(Named id) Enter) possibleInputs inputDescriptions =
   let
+    -- Function that selects the corresponding element of the possibleInputs array. This array is used to store values before the values are sent back to the server.
     inputWanted :: Value
     inputWanted = case selectInput id possibleInputs of
       Insert _ value -> value
       Option _ _ -> String "Should not be possible?"
 
+    -- Function that selects the corresponding element of the inputDescriptions array. The value (String) is used to determine the type of the editor.
     inputDescriptionWanted :: String
     inputDescriptionWanted = case selectInputDescription id inputDescriptions of
       InsertDescription _ value -> value
       OptionDescription _ _ -> "Should not be possible?"
 
+    -- Auxiliary function that is needed to determine the type of the editor. Initial Values: right type, dummy values. 
     typeOfEditor :: Value
     typeOfEditor = case inputDescriptionWanted of
-      -- Initial Values: right type, dummy values
       "<Text>" -> String ""
       "<Int>" -> Int 0
       "<Bool>" -> Boolean false
@@ -212,6 +234,7 @@ renderTask (Fail) _ _ =
   Bulma.panel ("Fail task")
     (HH.p_ [ HH.text $ show Fail ])
 
+-- Function that renders editors of Update tasks.
 renderEditor :: forall a. Name -> Value -> HH.HTML a Action
 renderEditor name (String value) =
   textInput
@@ -228,6 +251,7 @@ renderEditor name (Boolean value) =
     (Just value)
     (\b -> UpdateInput name (Boolean b))
 
+-- Function that renders editors of Enter tasks.
 renderEditorEnter :: forall a. Name -> Value -> HH.HTML a Action
 renderEditorEnter name (String _) =
   textInput
@@ -244,6 +268,7 @@ renderEditorEnter name (Boolean _) =
     Nothing
     (\b -> UpdateInput name (Boolean b))
 
+-- Function that renders buttons that do not belong to a Select task.
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =
   let
@@ -253,6 +278,7 @@ renderInputs inputDescriptions =
   in
     HH.div [ css "buttons is-right" ] buttons
 
+-- Function that renders buttons that belong to a Select task.
 renderInput :: forall a. InputDescription -> HH.HTML a Action
 renderInput (OptionDescription name label) =
   HH.button
@@ -261,6 +287,7 @@ renderInput (OptionDescription name label) =
 
 renderInput _ = HH.div_ []
 
+-- Function that renders Reset and Log buttons.
 renderActionButtons :: forall a. Array (HH.HTML a Action)
 renderActionButtons =
   [ HH.button

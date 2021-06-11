@@ -1,3 +1,15 @@
+{-|
+Module      : App.Task
+Description : Module for JSON conversion
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to convert Tasks, Editors, Values and InputDescription into JSON and visa versa.
+-}
+
 module App.Task where
 
 import Prelude
@@ -14,6 +26,13 @@ data Task
   | Step Task
   | Done
   | Fail
+
+instance showTask :: Show Task where
+  show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
+  show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
+  show (Step t) = "Step [" <> show t <> "]"
+  show Done = "Done"
+  show Fail = "Fail"  
 
 instance decodeJsonTask :: DecodeJson Task where
   decodeJson json = do
@@ -36,13 +55,6 @@ instance decodeJsonTask :: DecodeJson Task where
       "fail" -> do
         pure Fail
       _ -> Left (JsonDecodeError.UnexpectedValue (encodeJson taskType))
-
-instance showTask :: Show Task where
-  show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
-  show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
-  show (Step t) = "Step [" <> show t <> "]"
-  show Done = "Done"
-  show Fail = "Fail"
 
 data Editor
   = Update Value
@@ -142,35 +154,6 @@ instance encodeInput :: EncodeJson Input where
       := label
       ~> jsonEmptyObject
 
-taskToArray :: Task -> Array Input -> Array Input
-taskToArray (Edit (Named id) (Update value)) array = Insert id value : array
-
-taskToArray (Edit (Named id) Enter) array = Insert id (String "") : array
-
-taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
-
-taskToArray (Step t) array = taskToArray t array
-
-taskToArray _ _ = []
-
-isSelectedInput :: Int -> Input -> Boolean
-isSelectedInput id' (Insert id _) = id == id'
-
-isSelectedInput _ _ = false
-
-filterInputs :: Int -> Array Input -> Maybe Input
-filterInputs id inputs = head $ filter (isSelectedInput id) inputs
-
-selectInput :: Int -> Array Input -> Input
-selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
-
-updateInput :: Name -> Value -> Input -> Input
-updateInput (Named id) newValue input@(Insert id' _)
-  | id == id' = Insert id newValue
-  | otherwise = input
-
-updateInput _ _ input = input
-
 data InputDescription
   = InsertDescription Int String
   | OptionDescription Name String
@@ -194,26 +177,49 @@ instance decodeJsonInputDescription :: DecodeJson InputDescription where
         pure $ OptionDescription name label
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
+isSelectedInput :: Int -> Input -> Boolean
+isSelectedInput id' (Insert id _) = id == id'
+isSelectedInput _ _ = false
+
 isOption :: InputDescription -> Boolean
 isOption (OptionDescription _ _) = true
-
 isOption _ = false
 
--- Select and update inputDescription
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
 isSelectedInputDescription id (InsertDescription id' _) = id == id'
-
 isSelectedInputDescription id (OptionDescription (Named id') _) = id == id'
-
 isSelectedInputDescription _ _ = false
 
 isUnnamed :: InputDescription -> Boolean
 isUnnamed (OptionDescription Unnamed _) = true
-
 isUnnamed _ = false
 
+-- Function that returns an array of predefined values of editors.
+taskToArray :: Task -> Array Input -> Array Input
+taskToArray (Edit (Named id) (Update value)) array = Insert id value : array
+taskToArray (Edit (Named id) Enter) array = Insert id (String "") : array
+taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
+taskToArray (Step t) array = taskToArray t array
+taskToArray _ _ = []
+
+-- function to filter out a specific Input in a given array of Input.
+filterInputs :: Int -> Array Input -> Maybe Input
+filterInputs id inputs = head $ filter (isSelectedInput id) inputs
+
+-- function to filter out a specific Input in a given array of Input, under assumption that the Input exists.
+selectInput :: Int -> Array Input -> Input
+selectInput id inputs = unsafePartial $ fromJust $ (filterInputs id inputs)
+
+updateInput :: Name -> Value -> Input -> Input
+updateInput (Named id) newValue input@(Insert id' _)
+  | id == id' = Insert id newValue
+  | otherwise = input
+updateInput _ _ input = input
+
+-- function to filter out a specific InputDescription in a given array of InputDescription.
 filterInputsDescription :: Int -> Array InputDescription -> Maybe InputDescription
 filterInputsDescription id inputs = head $ filter (isSelectedInputDescription id) inputs
 
+-- function to filter out a specific InputDescription in a given array of InputDescription, under assumption that the InputDescription exists.
 selectInputDescription :: Int -> Array InputDescription -> InputDescription
 selectInputDescription id inputs = unsafePartial $ fromJust $ (filterInputsDescription id inputs)

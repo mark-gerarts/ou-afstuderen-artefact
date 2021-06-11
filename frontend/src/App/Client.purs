@@ -1,3 +1,15 @@
+{-|
+Module      : App.Client
+Description : Module to load the application
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to load the application: set the endpoints and define the handlers (initial tasks, interact, reset.
+-}
+
 module App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset) where
 
 import Prelude
@@ -16,10 +28,6 @@ import Web.DOM.Element (hasAttribute)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.HTMLElement (toElement)
 
-data ApiError
-  = RequestError AX.Error
-  | JsonError JsonDecodeError
-
 data TaskResponse
   = TaskResponse Task (Array InputDescription)
 
@@ -30,38 +38,13 @@ instance decodeJsonTaskResponse :: DecodeJson TaskResponse where
     inputs <- obj .: "inputs"
     pure $ TaskResponse task inputs
 
+data ApiError
+  = RequestError AX.Error
+  | JsonError JsonDecodeError
+
 instance showApiError :: Show ApiError where
   show (RequestError err) = AX.printError err
   show (JsonError err) = show err
-
-getInitialTask :: Aff (Either ApiError TaskResponse)
-getInitialTask = do
-  url <- endpoint "initial-task"
-  handleTaskResponse <$> AX.get AXRF.json url
-
-interact :: Input -> Aff (Either ApiError TaskResponse)
-interact input = do
-  url <- endpoint "interact"
-  let
-    jsonBody = Just $ AXRB.json (encodeJson input)
-  handleTaskResponse <$> AX.post AXRF.json url jsonBody
-
-reset :: Aff (Either ApiError TaskResponse)
-reset = do
-  url <- endpoint "reset"
-  handleTaskResponse <$> AX.get AXRF.json url
-
-handleTaskResponse :: Either AX.Error (AX.Response Json) -> Either ApiError TaskResponse
-handleTaskResponse r = case r of
-  Left err -> Left (RequestError err)
-  Right response -> case decodeJson response.body of
-    Left err -> Left (JsonError err)
-    Right task -> Right task
-
-endpoint :: String -> Aff String
-endpoint s = do
-  baseUri <- getBaseUri
-  pure $ baseUri <> s
 
 -- If the frontend code is served directly from the backend, we can simply use
 -- relative paths to access the API. However, when developing we use Parcel to
@@ -82,3 +65,37 @@ getBaseUri = do
   defaultUri = "/"
 
   devUri = "http://localhost:3000/"
+
+-- function that returns the url of and endpoint.
+endpoint :: String -> Aff String
+endpoint s = do
+  baseUri <- getBaseUri
+  pure $ baseUri <> s
+
+-- function that converts Json into TaskResponse (if possible).
+handleTaskResponse :: Either AX.Error (AX.Response Json) -> Either ApiError TaskResponse
+handleTaskResponse r = case r of
+  Left err -> Left (RequestError err)
+  Right response -> case decodeJson response.body of
+    Left err -> Left (JsonError err)
+    Right task -> Right task
+
+-- function that returns the initial task.
+getInitialTask :: Aff (Either ApiError TaskResponse)
+getInitialTask = do
+  url <- endpoint "initial-task"
+  handleTaskResponse <$> AX.get AXRF.json url
+
+-- function takes an Input as argument and returns the new task.
+interact :: Input -> Aff (Either ApiError TaskResponse)
+interact input = do
+  url <- endpoint "interact"
+  let
+    jsonBody = Just $ AXRB.json (encodeJson input)
+  handleTaskResponse <$> AX.post AXRF.json url jsonBody
+
+-- function that returns the original task.
+reset :: Aff (Either ApiError TaskResponse)
+reset = do
+  url <- endpoint "reset"
+  handleTaskResponse <$> AX.get AXRF.json url

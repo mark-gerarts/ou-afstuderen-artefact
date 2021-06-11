@@ -1,3 +1,15 @@
+{-|
+Module      : Component.HTML.Form
+Description : Module to render input forms.
+Copyright   : (c) Some Guy, 2013
+                  Someone Else, 2014
+License     : ...
+Maintainer  : sample@email.com
+Stability   : experimental
+
+Module to render the input forms.
+-}
+
 module Component.HTML.Form where
 
 import Prelude
