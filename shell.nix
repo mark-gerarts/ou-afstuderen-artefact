@@ -12,6 +12,13 @@ let
       rev = "04a2b269d8921505a2969fc9ec25c1f517f2b307";
   }) {};
 
+  ghcPin = import (builtins.fetchGit {
+      name = "ghc-8-8-4-pin";
+      url = "https://github.com/NixOS/nixpkgs/";
+      ref = "refs/heads/nixpkgs-unstable";
+      rev = "2c162d49cd5b979eb66ff1653aecaeaa01690fcc";
+  }) {};
+
   local-hoogle = writeScriptBin "local-hoogle" ''
     ${stack}/bin/stack test --fast --haddock-deps
     ${haskellPackages.hoogle}/bin/hoogle generate --local=./
@@ -64,6 +71,7 @@ in mkShell {
     # Backend
     stack
     cabal-install
+    ghcPin.ghc
 
     # Frontend
     pursPin.purescript
