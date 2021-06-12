@@ -13,8 +13,8 @@ a web server to visualize the passed task. By default, the application can be
 accessed at [http://localhost:3000](http://localhost:3000). The port number can
 be changed by passing it as an environment variable, e.g.:
 
-```
-PORT=3001 stack run
+```console
+$ PORT=3001 stack run
 ```
 
 Consider the following example:
@@ -43,3 +43,10 @@ greet =
 This will produce the following application when run:
 
 ![Hello World](./hello_world.png)
+
+Take a look at the `app` directory for some more examples. To run a specific
+example:
+
+```$console
+$ stack runghc app/TemperatureCalculator.hs
+```
