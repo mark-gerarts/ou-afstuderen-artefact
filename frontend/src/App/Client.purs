@@ -1,13 +1,13 @@
 {-|
 Module      : App.Client
-Description : Module to load the application
+Description : Module for communication with backend
 Copyright   : (c) Some Guy, 2013
                   Someone Else, 2014
 License     : ...
 Maintainer  : sample@email.com
 Stability   : experimental
 
-Module to load the application: set the endpoints and define the handlers (initial tasks, interact, reset.
+Module to send requests (initial tasks, interact, reset) to the backend and handle responses.
 -}
 
 module App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset) where

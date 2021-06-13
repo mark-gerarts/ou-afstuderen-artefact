@@ -7,7 +7,7 @@ License     : ...
 Maintainer  : sample@email.com
 Stability   : experimental
 
-Module to convert Tasks, Editors, Values and InputDescription into JSON and visa versa.
+Module to decode JSON (into Tasks, Editors, Values and InputDescription). Module also used to encode Input (into JSON).
 -}
 
 module App.Task where
