@@ -32,7 +32,7 @@ instance showTask :: Show Task where
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
   show Done = "Done"
-  show Fail = "Fail"  
+  show Fail = "Fail"
 
 instance decodeJsonTask :: DecodeJson Task where
   decodeJson json = do
