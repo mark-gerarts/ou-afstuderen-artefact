@@ -57,6 +57,7 @@ library
 executable ou-afstuderen-artefact-exe
   main-is: Main.hs
   other-modules:
+      CalorieCalculator
       Hangman
       TemperatureCalculator
       Paths_ou_afstuderen_artefact
