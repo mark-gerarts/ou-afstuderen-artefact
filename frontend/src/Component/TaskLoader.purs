@@ -17,7 +17,7 @@ import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form (booleanInput, integerInput, textInput)
 import Component.HTML.Utils (css)
-import Data.Array (filter)
+import Data.Array (filter, head)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
@@ -26,6 +26,13 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query.Event (eventListener)
+import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window (document) as Web
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
+import Web.UIEvent.KeyboardEvent as KE
+import Web.UIEvent.KeyboardEvent.EventTypes as KET
 
 -- The State holds a boolean to determine if a task is loading. It also holds
 -- the tasks that is rendered, and the types of Enter editors
@@ -37,13 +44,14 @@ type State
     }
 
 data Action
-  = FetchInitialTask
+  = Init
+  | HandleKey H.SubscriptionId KeyboardEvent
   | Interact Input
   | LogState -- For debug purposes...
   | Reset
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
-taskLoader =
+taskLoader = do
   H.mkComponent
     { initialState
     , render
@@ -51,7 +59,7 @@ taskLoader =
         H.mkEval
           $ H.defaultEval
               { handleAction = handleAction
-              , initialize = Just FetchInitialTask
+              , initialize = Just Init
               }
     }
   where
@@ -63,10 +71,32 @@ taskLoader =
 
 -- function that defines actions.
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
-handleAction FetchInitialTask = do
-  taskResp <- H.liftAff getInitialTask
-  setFromTaskResponse taskResp
-  H.modify_ \s -> s { isLoading = false }
+handleAction Init = do
+  fetchInitialTask
+  addKeyListener
+  where
+  fetchInitialTask = do
+    taskResp <- H.liftAff getInitialTask
+    setFromTaskResponse taskResp
+    H.modify_ \s -> s { isLoading = false }
+
+  addKeyListener = do
+    document <- H.liftEffect $ Web.document =<< Web.window
+    H.subscribe' \sid ->
+      eventListener
+        KET.keyup
+        (HTMLDocument.toEventTarget document)
+        (map (HandleKey sid) <<< KE.fromEvent)
+
+-- Pressing enter defaults to pressing continue (if present).
+handleAction (HandleKey _ ev) = do
+  when (KE.key ev == "Enter") do
+    { inputDescriptions: inputDescriptions } <- H.get
+    let
+      unnamedOptions = getUnnamedOptions inputDescriptions
+    case head unnamedOptions of
+      Just (OptionDescription name label) -> handleAction (Interact (Option name label))
+      _ -> pure unit
 
 handleAction Reset = do
   taskResp <- H.liftAff reset
@@ -232,7 +262,7 @@ renderEditorEnter id (Boolean _) =
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =
   let
-    unnamedOptions = filter (\x -> isOption x && isUnnamed x) inputDescriptions
+    unnamedOptions = getUnnamedOptions inputDescriptions
 
     buttons = renderActionButtons <> map renderInput unnamedOptions
   in
@@ -263,3 +293,6 @@ renderActionButtons =
       ]
       [ HH.text "Log state" ]
   ]
+
+getUnnamedOptions :: Array InputDescription -> Array InputDescription
+getUnnamedOptions = filter (\x -> isOption x && isUnnamed x)

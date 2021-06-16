@@ -8,7 +8,7 @@ module Hangman where
 
 import Data.List (intersect, (\\))
 import Data.Text (chunksOf, isInfixOf, singleton)
-import Task (Task (..), select, view, (>>?))
+import Task (Task (..), select, view)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
