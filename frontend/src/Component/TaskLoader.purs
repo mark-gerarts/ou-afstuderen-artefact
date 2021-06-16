@@ -27,7 +27,9 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
--- The State holds a boolean to determine if a task is loading. It also holds the tasks that is rendered, the inputs of editors (possible inputs) and the types of Enter editors (inputDescriptions).
+-- The State holds a boolean to determine if a task is loading. It also holds
+-- the tasks that is rendered, and the types of Enter editors
+-- (inputDescriptions).
 type State
   = { isLoading :: Boolean
     , currentTask :: Maybe Task
@@ -111,8 +113,9 @@ renderTaskWithInputs task inputDescriptions =
   HH.div_
     [ renderTask task inputDescriptions, renderInputs inputDescriptions ]
 
--- Render user interface for each support task type. Takes a task, an array of Input and an array of InputDescription as arguments.
--- The difference between the rendering of Update and Enter tasks: the predefined values.
+-- Render user interface for each support task type. Takes a task and an array
+-- of InputDescription as arguments. The difference between the rendering of
+-- Update and Enter tasks: the predefined values.
 renderTask :: forall a. Task -> Array InputDescription -> HH.HTML a Action
 renderTask (Edit name@(Named id) (Update value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
