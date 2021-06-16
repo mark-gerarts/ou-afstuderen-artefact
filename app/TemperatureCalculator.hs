@@ -15,11 +15,13 @@ main :: IO ()
 main = visualizeTask tempuratureCalculator
 
 tempuratureCalculator :: Task h Text
-tempuratureCalculator =
-  select
-    [ "Celcius to Fahrenheit" ~> convert CelciusToFahrenheit,
-      "Fahrenheit to Celcius" ~> convert FahrenheitToCelcius
-    ]
+tempuratureCalculator = do
+  conversion <-
+    select
+      [ "Celcius to Fahrenheit" ~> Done CelciusToFahrenheit,
+        "Fahrenheit to Celcius" ~> Done FahrenheitToCelcius
+      ]
+  convert conversion
 
 convert :: Conversion -> Task h Text
 convert conversionType =

@@ -48,9 +48,9 @@ gameStateToTask s@GameState {..}
   | otherwise = renderState s
 
 renderState :: GameState -> Task h Text
-renderState s@GameState {..} =
-  ((renderWord >< renderLives) >< renderInput)
-    >>? \(_, selectedLetter) -> gameStateToTask (chooseLetter s selectedLetter)
+renderState s@GameState {..} = do
+  (_, selectedLetter) <- (renderWord >< renderLives) >< renderInput
+  gameStateToTask (chooseLetter s selectedLetter)
   where
     renderWord = view <| maskWord wordToGuess usedLetters
 
