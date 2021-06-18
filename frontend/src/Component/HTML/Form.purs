@@ -9,15 +9,15 @@ Stability   : experimental
 
 Module to render the input forms.
 -}
-
 module Component.HTML.Form where
 
 import Prelude
 import Component.HTML.Utils (css)
 import Data.Array ((:))
-import Data.Int (fromString)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Int (fromNumber, fromString)
+import Data.Maybe (Maybe(..), fromJust, isJust)
 import Halogen.HTML as HH
+import Halogen.HTML.Events (onValueInput)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
@@ -38,13 +38,16 @@ textInput value onValueInput =
   in
     HH.input allProperties
 
-integerInput :: forall a b. Maybe Int -> (Int -> b) -> HH.HTML a b
-integerInput value onValueInput =
+integerInput :: forall a b. Maybe Int -> (Int -> b) -> b -> HH.HTML a b
+integerInput value onValueInput onValidationError =
   let
+    onValueInputHandler s = case fromNumber s of
+      Just s' -> onValueInput s'
+      Nothing -> onValidationError
+
     baseProperties =
       [ css "input"
       , HP.required true
-      , HE.onValueInput \s -> onValueInput (unsafePartial $ fromJust $ fromString s)
       , HP.type_ HP.InputNumber
       ]
 

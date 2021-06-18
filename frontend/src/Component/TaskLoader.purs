@@ -16,6 +16,7 @@ import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
 import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form (booleanInput, integerInput, textInput)
+import Component.HTML.FormComponent (FormInput(..), formComponent, intInput)
 import Component.HTML.Utils (css)
 import Data.Array (filter, head)
 import Data.Either (Either(..))
@@ -27,12 +28,16 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query.Event (eventListener)
+import Type.Proxy (Proxy(..))
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document) as Web
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.KeyboardEvent as KE
 import Web.UIEvent.KeyboardEvent.EventTypes as KET
+
+type Slots
+  = ( form :: forall query. H.Slot query Action Int )
 
 -- The State holds a boolean to determine if a task is loading. It also holds
 -- the tasks that is rendered, and the types of Enter editors
@@ -49,6 +54,8 @@ data Action
   | Interact Input
   | LogState -- For debug purposes...
   | Reset
+
+_form = Proxy :: Proxy "form"
 
 taskLoader :: forall query input output m. MonadAff m => H.Component query input output m
 taskLoader = do
@@ -70,7 +77,7 @@ taskLoader = do
     }
 
 -- function that defines actions.
-handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
+handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action Slots output m Unit
 handleAction Init = do
   fetchInitialTask
   addKeyListener
@@ -108,7 +115,7 @@ handleAction (Interact input) = do
   taskResp <- H.liftAff $ interact input
   setFromTaskResponse taskResp
 
-setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action () output m Unit
+setFromTaskResponse :: forall output m. MonadAff m => Either ApiError TaskResponse -> H.HalogenM State Action Slots output m Unit
 setFromTaskResponse taskResp = case taskResp of
   Left err -> logShow err
   Right (TaskResponse task inputs) ->
@@ -119,7 +126,7 @@ setFromTaskResponse taskResp = case taskResp of
         }
 
 -- Function that renders the user interface. Takes a state as argument.
-render :: forall a. State -> HH.HTML a Action
+render :: forall a. MonadAff a => State -> HH.ComponentHTML Action Slots a
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
   { currentTask: Just task
@@ -138,7 +145,7 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 -- Function that renders the user interface of a given Task. Function also renders buttons that do not belong to Select tasks, like Continue.
-renderTaskWithInputs :: forall a. Task -> Array InputDescription -> HH.HTML a Action
+renderTaskWithInputs :: forall a. MonadAff a => Task -> Array InputDescription -> HH.ComponentHTML Action Slots a
 renderTaskWithInputs task inputDescriptions =
   HH.div_
     [ renderTask task inputDescriptions, renderInputs inputDescriptions ]
@@ -146,7 +153,7 @@ renderTaskWithInputs task inputDescriptions =
 -- Render user interface for each support task type. Takes a task and an array
 -- of InputDescription as arguments. The difference between the rendering of
 -- Update and Enter tasks: the predefined values.
-renderTask :: forall a. Task -> Array InputDescription -> HH.HTML a Action
+renderTask :: forall a. MonadAff a => Task -> Array InputDescription -> HH.ComponentHTML Action Slots a
 renderTask (Edit name@(Named id) (Update value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
     ( HH.div [ css "control" ]
@@ -225,16 +232,16 @@ renderTask (Fail) _ =
     (HH.p_ [ HH.text $ show Fail ])
 
 -- Function that renders editors of Update tasks.
-renderEditor :: forall a. Int -> Value -> HH.HTML a Action
+renderEditor :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
 renderEditor id (String value) =
   textInput
     (Just value)
     (\s -> Interact (Insert id (String s)))
 
 renderEditor id (Int value) =
-  integerInput
-    (Just value)
-    (\i -> Interact (Insert id (Int i)))
+  formSlot
+    id
+    (intInput (Just value) (\i -> Interact (Insert id (Int i))))
 
 renderEditor id (Boolean value) =
   booleanInput
@@ -242,16 +249,16 @@ renderEditor id (Boolean value) =
     (\b -> Interact (Insert id (Boolean b)))
 
 -- Function that renders editors of Enter tasks.
-renderEditorEnter :: forall a. Int -> Value -> HH.HTML a Action
+renderEditorEnter :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
 renderEditorEnter id (String _) =
   textInput
     Nothing
     (\s -> Interact (Insert id (String s)))
 
 renderEditorEnter id (Int _) =
-  integerInput
-    Nothing
-    (\i -> Interact (Insert id (Int i)))
+  formSlot
+    id
+    (intInput Nothing (\i -> Interact (Insert id (Int i))))
 
 renderEditorEnter id (Boolean _) =
   booleanInput
@@ -296,3 +303,12 @@ renderActionButtons =
 
 getUnnamedOptions :: Array InputDescription -> Array InputDescription
 getUnnamedOptions = filter (\x -> isOption x && isUnnamed x)
+
+formSlot :: forall a. MonadAff a => Int -> FormInput Action -> HH.ComponentHTML Action Slots a
+formSlot id formInput =
+  HH.slot
+    _form
+    id
+    formComponent
+    formInput
+    (\s -> s)
