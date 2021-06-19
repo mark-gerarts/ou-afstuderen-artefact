@@ -21,18 +21,16 @@ describe('boolean update', () => {
     });
 
     test('it should check True by default because the server value is True', async () => {
-        await expect(page).toHaveSelector('input[type="radio"]:nth-child(1):checked');
+        await expect(page).toHaveSelector('input[type="radio"]:first-child:checked');
     });
 
-    test('it should send the checkbox value to the server', async () => {
+    test('it should send a false value to the server when clicking "false"', async () => {
         const [request, response] = await Promise.all([
             page.waitForRequest('**/interact'),
             page.waitForResponse('**/interact'),
-            page.click('input[type="radio"]:first-child')
+            page.click('.radio-false input')
         ]);
 
-        // Check if the value sent to the server is false, since we unchecked
-        // the checkbox.
         expect(request.postDataJSON().value).toBe(false);
 
         // Check if the server has interpreted the false value.

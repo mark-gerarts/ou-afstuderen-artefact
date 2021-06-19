@@ -18,6 +18,7 @@
   , "psci-support"
   , "web-dom"
   , "web-html"
+  , "web-uievents"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

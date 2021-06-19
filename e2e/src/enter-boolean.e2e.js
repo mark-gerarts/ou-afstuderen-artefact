@@ -24,15 +24,27 @@ describe('boolean enter', () => {
         await expect(page).not.toHaveSelector('input[type="radio"]:checked', { timeout: 500 });
     });
 
-    test('it should send the checkbox value to the server', async () => {
+    test('it should send a true value to the server when clicking "true"', async () => {
         const [request, response] = await Promise.all([
             page.waitForRequest('**/interact'),
             page.waitForResponse('**/interact'),
-            page.click('input[type="radio"]:first-child')
+            page.click('.radio-true input')
         ]);
 
-        // Check if the value sent to the server is false, since we unchecked
-        // the checkbox.
+        expect(request.postDataJSON().value).toBe(true);
+
+        // Check if the server has interpreted the true value.
+        const responseJson = JSON.parse(await response.text());
+        expect(responseJson.task.editor.value).toBe(true);
+    });
+
+    test('it should send a false value to the server when clicking "false"', async () => {
+        const [request, response] = await Promise.all([
+            page.waitForRequest('**/interact'),
+            page.waitForResponse('**/interact'),
+            page.click('.radio-false input')
+        ]);
+
         expect(request.postDataJSON().value).toBe(false);
 
         // Check if the server has interpreted the false value.
