@@ -290,6 +290,8 @@ renderActionButtons =
 getUnnamedOptions :: Array InputDescription -> Array InputDescription
 getUnnamedOptions = filter (\x -> isOption x && isUnnamed x)
 
+-- Each form field is a child component that manages its owns state. An output
+-- event is only fired when the provided value is valid.
 textInput :: forall m. MonadAff m => Int -> Maybe String -> HH.ComponentHTML Action Slots m
 textInput id value =
   HH.slot

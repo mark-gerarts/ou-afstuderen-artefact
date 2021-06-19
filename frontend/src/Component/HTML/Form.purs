@@ -41,7 +41,8 @@ data FormWidget
 
 derive instance eqFormWidget :: Eq FormWidget
 
--- The component fires the state's event only when the value is valid.
+-- Form component that renders a specific field. Only when an entered value is
+-- valid, an output message will be raised.
 component :: forall query output m. MonadAff m => H.Component query (FormState output) output m
 component =
   H.mkComponent
@@ -61,6 +62,7 @@ defaultState value validate =
   , widget: TextInput
   }
 
+-- Helper functions to construct form fields of a given type.
 intInput :: Maybe Int -> FormState Int
 intInput value =
   let
