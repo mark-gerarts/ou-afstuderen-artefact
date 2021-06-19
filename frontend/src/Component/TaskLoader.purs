@@ -15,7 +15,7 @@ import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
 import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInputDescription)
 import Component.HTML.Bulma as Bulma
-import Component.HTML.Form (FormInput, booleanInput, formComponent, intInput, textInput)
+import Component.HTML.Form (FormState, booleanInput, formComponent, intInput, textInput)
 import Component.HTML.Utils (css)
 import Data.Array (filter, head)
 import Data.Either (Either(..))
@@ -125,7 +125,7 @@ setFromTaskResponse taskResp = case taskResp of
         }
 
 -- Function that renders the user interface. Takes a state as argument.
-render :: forall a. MonadAff a => State -> HH.ComponentHTML Action Slots a
+render :: forall m. MonadAff m => State -> HH.ComponentHTML Action Slots m
 render state = case state of
   { isLoading: true } -> renderLoadingScreen
   { currentTask: Just task
@@ -144,7 +144,7 @@ renderError :: forall a. HH.HTML a Action
 renderError = HH.p_ [ HH.text "An error occurred :(" ]
 
 -- Function that renders the user interface of a given Task. Function also renders buttons that do not belong to Select tasks, like Continue.
-renderTaskWithInputs :: forall a. MonadAff a => Task -> Array InputDescription -> HH.ComponentHTML Action Slots a
+renderTaskWithInputs :: forall m. MonadAff m => Task -> Array InputDescription -> HH.ComponentHTML Action Slots m
 renderTaskWithInputs task inputDescriptions =
   HH.div_
     [ renderTask task inputDescriptions, renderInputs inputDescriptions ]
@@ -152,7 +152,7 @@ renderTaskWithInputs task inputDescriptions =
 -- Render user interface for each support task type. Takes a task and an array
 -- of InputDescription as arguments. The difference between the rendering of
 -- Update and Enter tasks: the predefined values.
-renderTask :: forall a. MonadAff a => Task -> Array InputDescription -> HH.ComponentHTML Action Slots a
+renderTask :: forall m. MonadAff m => Task -> Array InputDescription -> HH.ComponentHTML Action Slots m
 renderTask (Edit name@(Named id) (Update value)) _ =
   Bulma.panel ("Update Task [" <> show name <> "]")
     ( HH.div [ css "control" ]
@@ -231,7 +231,7 @@ renderTask (Fail) _ =
     (HH.p_ [ HH.text $ show Fail ])
 
 -- Function that renders editors of Update tasks.
-renderEditor :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
+renderEditor :: forall m. MonadAff m => Int -> Value -> HH.ComponentHTML Action Slots m
 renderEditor id (String value) =
   formSlot
     id
@@ -248,7 +248,7 @@ renderEditor id (Boolean value) =
     (booleanInput (Just value) (\b -> Interact (Insert id (Boolean b))))
 
 -- Function that renders editors of Enter tasks.
-renderEditorEnter :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
+renderEditorEnter :: forall m. MonadAff m => Int -> Value -> HH.ComponentHTML Action Slots m
 renderEditorEnter id (String _) =
   formSlot
     id
@@ -303,7 +303,7 @@ renderActionButtons =
 getUnnamedOptions :: Array InputDescription -> Array InputDescription
 getUnnamedOptions = filter (\x -> isOption x && isUnnamed x)
 
-formSlot :: forall a. MonadAff a => Int -> FormInput Action -> HH.ComponentHTML Action Slots a
+formSlot :: forall a m. MonadAff m => Int -> FormState a Action -> HH.ComponentHTML Action Slots m
 formSlot id formInput =
   HH.slot
     _form

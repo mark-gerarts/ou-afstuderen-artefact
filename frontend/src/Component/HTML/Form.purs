@@ -5,10 +5,11 @@ state and validation.
 *Very* loosely inspired by
 https://github.com/fpco/halogen-form/blob/master/src/Halogen/Form.purs
 -}
-module Component.HTML.Form (intInput, FormInput, textInput, booleanInput, formComponent) where
+module Component.HTML.Form (FormState, Validator, FormWidget, ValidationError, intInput, textInput, booleanInput, formComponent) where
 
 import Prelude
 import Component.HTML.Utils (css)
+import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
@@ -20,21 +21,30 @@ import Halogen.HTML.Properties as HP
 data Action
   = UpdateValue String
 
-type State a b
-  = { value :: Maybe a
-    , rawValue :: String
+type FormState a b
+  = { rawValue :: String
     , touched :: Boolean
-    , event :: a -> b
     , isValid :: Boolean
+    , validate :: Validator a
+    , widget :: FormWidget
+    , onValidValue :: a -> b
     }
 
-data FormInput b
-  = IntInput (State Int b)
-  | TextInput (State String b)
-  | BooleanInput (State Boolean b)
+type Validator a
+  = String -> Either ValidationError a
+
+data ValidationError
+  = InvalidValue
+
+data FormWidget
+  = IntInput
+  | TextInput
+  | BooleanInput
+
+derive instance eqFormWidget :: Eq FormWidget
 
 -- The component fires the state's event only when the value is valid.
-formComponent :: forall a query m. MonadAff m => H.Component query (FormInput a) a m
+formComponent :: forall query output a m. MonadAff m => H.Component query (FormState a output) output m
 formComponent =
   H.mkComponent
     { initialState
@@ -42,66 +52,66 @@ formComponent =
     , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
     }
   where
-  initialState :: FormInput a -> FormInput a
+  initialState :: FormState a output -> FormState a output
   initialState s = s
 
-defaultState :: forall a b. Show a => Maybe a -> (a -> b) -> State a b
-defaultState v ev =
-  { value: v
-  , rawValue:
-      case v of
-        Just v' -> show v'
-        Nothing -> ""
+defaultState :: forall a b. String -> (a -> b) -> Validator a -> FormState a b
+defaultState value onValidValue validate =
+  { rawValue: value
   , touched: false
-  , event: ev
   , isValid: true
+  , validate: validate
+  , widget: TextInput
+  , onValidValue: onValidValue
   }
 
-intInput :: forall a. Maybe Int -> (Int -> a) -> FormInput a
-intInput v event = IntInput $ defaultState v event
+intInput :: forall a. Maybe Int -> (Int -> a) -> FormState Int a
+intInput value onValidValue =
+  let
+    s =
+      defaultState
+        (fromMaybe "" $ show <$> value)
+        onValidValue
+        $ \v -> case fromString v of
+            Just v' -> Right v'
+            Nothing -> Left InvalidValue
+  in
+    s { widget = IntInput }
 
-textInput :: forall a. Maybe String -> (String -> a) -> FormInput a
-textInput v event = TextInput $ (defaultState v event) { rawValue = fromMaybe "" v }
+textInput :: forall a. Maybe String -> (String -> a) -> FormState String a
+textInput value onValidValue = defaultState (fromMaybe "" value) onValidValue Right
 
-booleanInput :: forall a. Maybe Boolean -> (Boolean -> a) -> FormInput a
-booleanInput v event = BooleanInput $ defaultState v event
+booleanInput :: forall a. Maybe Boolean -> (Boolean -> a) -> FormState Boolean a
+booleanInput value onValidValue =
+  let
+    s =
+      defaultState
+        (fromMaybe "" $ show <$> value)
+        onValidValue
+        $ \b -> case parseBoolean b of
+            Just b' -> Right b'
+            Nothing -> Left InvalidValue
+  in
+    s { widget = BooleanInput }
 
-handleAction :: forall output m a. MonadAff m => Action -> H.HalogenM (FormInput a) Action output a m Unit
+handleAction :: forall output m a b. MonadAff m => Action -> H.HalogenM (FormState b output) Action a output m Unit
 handleAction (UpdateValue v) = do
   s <- H.get
-  case s of
-    (IntInput s') ->
-      let
-        newState = s' { touched = true, rawValue = v }
+  case s.validate v of
+    Left _ -> do
+      H.put $ s { isValid = false }
+    Right v' -> do
+      H.put $ s { isValid = true }
+      H.raise (s.onValidValue v')
+  H.modify_ \s' -> s' { touched = true, rawValue = v }
 
-        validatedState = case fromString v of
-          Just v' -> newState { value = Just v', isValid = true }
-          Nothing -> newState { value = Nothing, isValid = false }
-      in
-        do
-          H.put (IntInput validatedState)
-          case validatedState.value of
-            Just v' -> H.raise $ validatedState.event v'
-            Nothing -> pure unit
-    (TextInput s') -> do
-      H.put (TextInput s' { value = Just v, rawValue = v })
-      H.raise $ s'.event v
-    (BooleanInput s') ->
-      let
-        newValue = v == "true"
-      in
-        do
-          H.put (BooleanInput s' { value = Just newValue })
-          H.raise $ s'.event newValue
+render :: forall m a b. FormState a b -> H.ComponentHTML Action () m
+render s@{ widget: widget } = case widget of
+  IntInput -> renderIntInput s
+  TextInput -> renderTextInput s
+  BooleanInput -> renderBooleanInput s
 
-render :: forall m a. FormInput a -> H.ComponentHTML Action () m
-render (IntInput s) = renderIntInput s
-
-render (TextInput s) = renderTextInput s
-
-render (BooleanInput s) = renderBooleanInput s
-
-renderIntInput :: forall m a. State Int a -> H.ComponentHTML Action () m
+renderIntInput :: forall m a b. FormState a b -> H.ComponentHTML Action () m
 renderIntInput s =
   let
     cssValue = if s.isValid then "input" else "input is-danger"
@@ -113,7 +123,7 @@ renderIntInput s =
       , HE.onValueInput UpdateValue
       ]
 
-renderTextInput :: forall m a. State String a -> H.ComponentHTML Action () m
+renderTextInput :: forall m a b. FormState a b -> H.ComponentHTML Action () m
 renderTextInput s =
   HH.input
     [ css "input"
@@ -122,11 +132,11 @@ renderTextInput s =
     , HE.onValueInput UpdateValue
     ]
 
-renderBooleanInput :: forall m a. State Boolean a -> H.ComponentHTML Action () m
+renderBooleanInput :: forall m a b. FormState a b -> H.ComponentHTML Action () m
 renderBooleanInput s =
   let
-    getCheckedAttribute booleanType = case s.value of
-      Just v -> [ HP.checked (booleanType == v) ]
+    getCheckedAttribute booleanType = case parseBoolean s.rawValue of
+      Just b -> [ HP.checked (b == booleanType) ]
       Nothing -> []
 
     getRadio booleanType =
@@ -146,3 +156,9 @@ renderBooleanInput s =
   in
     HH.div_
       [ getRadio true, getRadio false ]
+
+parseBoolean :: String -> Maybe Boolean
+parseBoolean s = case s of
+  "true" -> Just true
+  "false" -> Just false
+  _ -> Nothing
