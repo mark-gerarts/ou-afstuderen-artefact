@@ -14,7 +14,6 @@ describe('continue on enter', () => {
     test('it should continue when pressing enter', async () => {
         await Promise.all([
             page.waitForResponse('**/interact'),
-            page.waitForResponse('**/interact'),
             page.fill('input[type="number"]', '11')
         ]);
 
