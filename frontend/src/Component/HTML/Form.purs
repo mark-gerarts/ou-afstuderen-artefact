@@ -1,96 +1,148 @@
 {-|
-Module      : Component.HTML.Form
-Description : Module to render input forms.
-Copyright   : (c) Some Guy, 2013
-                  Someone Else, 2014
-License     : ...
-Maintainer  : sample@email.com
-Stability   : experimental
+Module to render form fields as separate components, allowing them to manage
+state and validation.
 
-Module to render the input forms.
+*Very* loosely inspired by
+https://github.com/fpco/halogen-form/blob/master/src/Halogen/Form.purs
 -}
-module Component.HTML.Form where
+module Component.HTML.Form (intInput, FormInput, textInput, booleanInput, formComponent) where
 
 import Prelude
 import Component.HTML.Utils (css)
-import Data.Array ((:))
-import Data.Int (fromNumber, fromString)
-import Data.Maybe (Maybe(..), fromJust, isJust)
+import Data.Int (fromString)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Effect.Aff.Class (class MonadAff)
+import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events (onValueInput)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Partial.Unsafe (unsafePartial)
 
-textInput :: forall a b. Maybe String -> (String -> b) -> HH.HTML a b
-textInput value onValueInput =
+data Action
+  = UpdateValue String
+
+type State a b
+  = { value :: Maybe a
+    , rawValue :: String
+    , touched :: Boolean
+    , event :: a -> b
+    , isValid :: Boolean
+    }
+
+data FormInput b
+  = IntInput (State Int b)
+  | TextInput (State String b)
+  | BooleanInput (State Boolean b)
+
+-- The component fires the state's event only when the value is valid.
+formComponent :: forall a query m. MonadAff m => H.Component query (FormInput a) a m
+formComponent =
+  H.mkComponent
+    { initialState
+    , render
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+    }
+  where
+  initialState :: FormInput a -> FormInput a
+  initialState s = s
+
+defaultState :: forall a b. Show a => Maybe a -> (a -> b) -> State a b
+defaultState v ev =
+  { value: v
+  , rawValue:
+      case v of
+        Just v' -> show v'
+        Nothing -> ""
+  , touched: false
+  , event: ev
+  , isValid: true
+  }
+
+intInput :: forall a. Maybe Int -> (Int -> a) -> FormInput a
+intInput v event = IntInput $ defaultState v event
+
+textInput :: forall a. Maybe String -> (String -> a) -> FormInput a
+textInput v event = TextInput $ (defaultState v event) { rawValue = fromMaybe "" v }
+
+booleanInput :: forall a. Maybe Boolean -> (Boolean -> a) -> FormInput a
+booleanInput v event = BooleanInput $ defaultState v event
+
+handleAction :: forall output m a. MonadAff m => Action -> H.HalogenM (FormInput a) Action output a m Unit
+handleAction (UpdateValue v) = do
+  s <- H.get
+  case s of
+    (IntInput s') ->
+      let
+        newState = s' { touched = true, rawValue = v }
+
+        validatedState = case fromString v of
+          Just v' -> newState { value = Just v', isValid = true }
+          Nothing -> newState { value = Nothing, isValid = false }
+      in
+        do
+          H.put (IntInput validatedState)
+          case validatedState.value of
+            Just v' -> H.raise $ validatedState.event v'
+            Nothing -> pure unit
+    (TextInput s') -> do
+      H.put (TextInput s' { value = Just v, rawValue = v })
+      H.raise $ s'.event v
+    (BooleanInput s') ->
+      let
+        newValue = v == "true"
+      in
+        do
+          H.put (BooleanInput s' { value = Just newValue })
+          H.raise $ s'.event newValue
+
+render :: forall m a. FormInput a -> H.ComponentHTML Action () m
+render (IntInput s) = renderIntInput s
+
+render (TextInput s) = renderTextInput s
+
+render (BooleanInput s) = renderBooleanInput s
+
+renderIntInput :: forall m a. State Int a -> H.ComponentHTML Action () m
+renderIntInput s =
   let
-    baseProperties =
-      [ css "input"
-      , HP.required true
-      , HE.onValueInput onValueInput
-      , HP.type_ HP.InputText
-      ]
-
-    allProperties = case value of
-      Just v -> HP.value v : baseProperties
-      Nothing -> baseProperties
+    cssValue = if s.isValid then "input" else "input is-danger"
   in
-    HH.input allProperties
-
-integerInput :: forall a b. Maybe Int -> (Int -> b) -> b -> HH.HTML a b
-integerInput value onValueInput onValidationError =
-  let
-    onValueInputHandler s = case fromNumber s of
-      Just s' -> onValueInput s'
-      Nothing -> onValidationError
-
-    baseProperties =
-      [ css "input"
-      , HP.required true
+    HH.input
+      [ css cssValue
       , HP.type_ HP.InputNumber
+      , HP.value s.rawValue
+      , HE.onValueInput UpdateValue
       ]
 
-    allProperties = case value of
-      Just v -> HP.value (show v) : baseProperties
-      Nothing -> baseProperties
-  in
-    HH.input allProperties
+renderTextInput :: forall m a. State String a -> H.ComponentHTML Action () m
+renderTextInput s =
+  HH.input
+    [ css "input"
+    , HP.type_ HP.InputText
+    , HP.value s.rawValue
+    , HE.onValueInput UpdateValue
+    ]
 
-booleanInput :: forall a b. Maybe Boolean -> (Boolean -> b) -> HH.HTML a b
-booleanInput value onChange =
+renderBooleanInput :: forall m a. State Boolean a -> H.ComponentHTML Action () m
+renderBooleanInput s =
   let
-    getCheckedAttribute booleanType = case value of
+    getCheckedAttribute booleanType = case s.value of
       Just v -> [ HP.checked (booleanType == v) ]
       Nothing -> []
+
+    getRadio booleanType =
+      HH.div [ css $ "radio-" <> show booleanType ]
+        [ HH.label
+            [ css "radio" ]
+            [ HH.input
+                ( [ HP.type_ HP.InputRadio
+                  , HP.name "radiobuttonTrueFalse"
+                  , HE.onChange \_ -> UpdateValue (show booleanType)
+                  ]
+                    <> getCheckedAttribute booleanType
+                )
+            , HH.text (if booleanType then " True" else " False")
+            ]
+        ]
   in
     HH.div_
-      [ HH.div []
-          [ HH.label
-              [ css "radio" ]
-              [ HH.input
-                  ( [ HP.required true
-                    , HP.type_ HP.InputRadio
-                    , HP.name "radiobuttonTrueFalse"
-                    , HE.onChange \_ -> onChange false
-                    ]
-                      <> getCheckedAttribute false
-                  )
-              , HH.text " False"
-              ]
-          ]
-      , HH.div []
-          [ HH.label
-              [ css "radio" ]
-              [ HH.input
-                  ( [ HP.required true
-                    , HP.type_ HP.InputRadio
-                    , HP.name "radiobuttonTrueFalse"
-                    , HE.onChange \_ -> onChange true
-                    ]
-                      <> getCheckedAttribute true
-                  )
-              , HH.text " True"
-              ]
-          ]
-      ]
+      [ getRadio true, getRadio false ]

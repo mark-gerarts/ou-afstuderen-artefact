@@ -12,8 +12,17 @@ describe('continue on enter', () => {
     });
 
     test('it should continue when pressing enter', async () => {
-        await page.fill('input[type="number"]', '11');
-        await page.keyboard.press("Enter");
+        await Promise.all([
+            page.waitForResponse('**/interact'),
+            page.waitForResponse('**/interact'),
+            page.fill('input[type="number"]', '11')
+        ]);
+
+        await Promise.all([
+            page.waitForResponse('**/interact'),
+            page.keyboard.press("Enter"),
+        ]);
+
         await expect(page).toEqualText('.panel-block p', '12')
     });
 });

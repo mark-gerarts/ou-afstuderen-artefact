@@ -15,8 +15,7 @@ import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
 import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInputDescription)
 import Component.HTML.Bulma as Bulma
-import Component.HTML.Form (booleanInput, integerInput, textInput)
-import Component.HTML.FormComponent (FormInput(..), formComponent, intInput)
+import Component.HTML.Form (FormInput, booleanInput, formComponent, intInput, textInput)
 import Component.HTML.Utils (css)
 import Data.Array (filter, head)
 import Data.Either (Either(..))
@@ -234,9 +233,9 @@ renderTask (Fail) _ =
 -- Function that renders editors of Update tasks.
 renderEditor :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
 renderEditor id (String value) =
-  textInput
-    (Just value)
-    (\s -> Interact (Insert id (String s)))
+  formSlot
+    id
+    (textInput (Just value) (\s -> Interact (Insert id (String s))))
 
 renderEditor id (Int value) =
   formSlot
@@ -244,16 +243,16 @@ renderEditor id (Int value) =
     (intInput (Just value) (\i -> Interact (Insert id (Int i))))
 
 renderEditor id (Boolean value) =
-  booleanInput
-    (Just value)
-    (\b -> Interact (Insert id (Boolean b)))
+  formSlot
+    id
+    (booleanInput (Just value) (\b -> Interact (Insert id (Boolean b))))
 
 -- Function that renders editors of Enter tasks.
 renderEditorEnter :: forall a. MonadAff a => Int -> Value -> HH.ComponentHTML Action Slots a
 renderEditorEnter id (String _) =
-  textInput
-    Nothing
-    (\s -> Interact (Insert id (String s)))
+  formSlot
+    id
+    (textInput Nothing (\s -> Interact (Insert id (String s))))
 
 renderEditorEnter id (Int _) =
   formSlot
@@ -261,9 +260,9 @@ renderEditorEnter id (Int _) =
     (intInput Nothing (\i -> Interact (Insert id (Int i))))
 
 renderEditorEnter id (Boolean _) =
-  booleanInput
-    Nothing
-    (\b -> Interact (Insert id (Boolean b)))
+  formSlot
+    id
+    (booleanInput Nothing (\b -> Interact (Insert id (Boolean b))))
 
 -- Function that renders buttons that do not belong to a Select task.
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action

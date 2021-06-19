@@ -19,7 +19,6 @@
   , "web-dom"
   , "web-html"
   , "web-uievents"
-  , "web-touchevents"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
