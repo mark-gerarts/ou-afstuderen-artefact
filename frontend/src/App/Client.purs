@@ -9,7 +9,6 @@ Stability   : experimental
 
 Module to send requests (initial tasks, interact, reset) to the backend and handle responses.
 -}
-
 module App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset) where
 
 import Prelude
