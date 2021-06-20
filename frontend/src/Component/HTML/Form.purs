@@ -116,6 +116,7 @@ renderIntInput s =
       [ css cssValue
       , HP.type_ HP.InputNumber
       , HP.value s.rawValue
+      , HP.tabIndex 0
       , HE.onValueInput UpdateValue
       ]
 

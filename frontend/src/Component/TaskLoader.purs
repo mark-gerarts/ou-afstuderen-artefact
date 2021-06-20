@@ -35,6 +35,8 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.KeyboardEvent as KE
 import Web.UIEvent.KeyboardEvent.EventTypes as KET
 
+-- Because our form components can return any type, we have to define a slot
+-- type for every scalar value we need.
 type Slots
   = ( formInt :: forall query. H.Slot query Int Int
     , formString :: forall query. H.Slot query String Int
