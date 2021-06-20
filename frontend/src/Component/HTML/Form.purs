@@ -90,6 +90,7 @@ booleanInput value =
   in
     s { widget = BooleanInput }
 
+-- function that defines actions.
 handleAction :: forall output m a. MonadAff m => Action -> H.HalogenM (FormState output) Action a output m Unit
 handleAction (UpdateValue v) = do
   s <- H.get
@@ -101,6 +102,7 @@ handleAction (UpdateValue v) = do
       H.raise v'
   H.modify_ \s' -> s' { rawValue = v }
 
+-- Function that renders an input. Takes a FormState as argument.
 render :: forall m a. FormState a -> H.ComponentHTML Action () m
 render s@{ widget: widget } = case widget of
   IntInput -> renderIntInput s
