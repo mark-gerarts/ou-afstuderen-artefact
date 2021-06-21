@@ -1,8 +1,8 @@
-// Step.hs
+// ContinueOnEnter.hs
 describe('continue on enter', () => {
     beforeEach(async () => {
         await Promise.all([
-            page.goto('http://localhost:3004'),
+            page.goto('http://localhost:3013'),
             page.waitForResponse('**/initial-task')
         ]);
     });

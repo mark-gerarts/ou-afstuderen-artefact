@@ -29,5 +29,7 @@ module.exports = {
         serverConfigForTask('EnterBoolean.hs', 3010),
         serverConfigForTask('EnterInt.hs', 3011),
         serverConfigForTask('TemperatureCalculator.hs', 3012),
+        serverConfigForTask('ContinueOnEnter.hs', 3013),
+        serverConfigForTask('Validation.hs', 3014)
     ]
 }
