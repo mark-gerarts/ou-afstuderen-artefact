@@ -132,7 +132,7 @@ or some other solution.</p>
 a web server to visualize the passed task. By default, the application can be
 accessed at <a href="http://localhost:3000">http://localhost:3000</a>. The port number can
 be changed by passing it as an environment variable, e.g.:</p>
-<pre><code>PORT=3001 stack run
+<pre><code class="language-console">$ PORT=3001 stack run
 </code></pre>
 <p>Consider the following example:</p>
 <pre><code>{-# LANGUAGE OverloadedStrings #-}
@@ -156,6 +156,10 @@ greet =
 </code></pre>
 <p>This will produce the following application when run:</p>
 <p><img alt="Hello World" src="../hello_world.png" /></p>
+<p>Take a look at the <code>app</code> directory for some more examples. To run a specific
+example:</p>
+<p><code>$console
+$ stack runghc app/TemperatureCalculator.hs</code></p>
               
             </div>
           </div>

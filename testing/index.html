@@ -162,6 +162,9 @@ etc that you're using in the tests.</p>
 <ul>
 <li>Create a new test suite: <code>e2e/src/your-new-test.e2e.js</code></li>
 <li>Create a new task to test: <code>e2e/task/YourNewTest.hs</code></li>
+<li>It is important to always create a new task for your tests. Every file in
+    <code>e2e/src/*</code> gets run in parallel, so reusing tasks can make the tests
+    interfere with each other.</li>
 <li>Add a new entry to spin up a server in <code>e2e/jest-playwright.config.js</code></li>
 <li>Make sure you use a unique port number</li>
 <li>Use this port in your test suite</li>
