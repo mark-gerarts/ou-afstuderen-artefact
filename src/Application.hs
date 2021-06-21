@@ -1,26 +1,24 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE OverloadedStrings #-}
 
-{-|
-Module      : Application
-Description : Module to load the application
-Copyright   : (c) Some Guy, 2013
-                  Someone Else, 2014
-License     : ...
-Maintainer  : sample@email.com
-Stability   : experimental
-
-Module to load the application: set the server and define the handlers (initial tasks, interact, reset and static files).
--}
-
+-- |
+-- Module      : Application
+-- Description : Module to load the application
+-- Copyright   : (c) Some Guy, 2013
+--                   Someone Else, 2014
+-- License     : ...
+-- Maintainer  : sample@email.com
+-- Stability   : experimental
+--
+-- Module to load the application: set the server and define the handlers (initial tasks, interact, reset and static files).
 module Application (application, State (..)) where
 
-import Communication (JsonInput (..), JsonTask (..))
-import Data.Aeson (ToJSON)
+import Communication (JsonInput (..), TaskDescription (..), describe)
 import qualified Data.ByteString.Lazy as BS
 import Data.Text (replace)
 import Network.HTTP.Media ((//), (/:))
@@ -39,16 +37,14 @@ import Polysemy.Mutate
 import Polysemy.Supply (Supply, supplyToIO)
 import Servant
 import Task (RealWorld, Task)
-import Task.Input (Concrete (..), Dummy, Input (..))
-import Task.Observe (inputs)
+import Task.Input (Concrete (..), Input (..))
 import Task.Run (NotApplicable, Steps, initialise, interact)
 
-{-|
-  State is used to keep the current task and the original task. 
-  currentTask: After sending an Input to Tophat, a new Task is returned. This task is kept in currentTask.
-  originalTask: The original task contains the initial task. This task will be reloaded after a reset.
-  initialised: used to determine if State is initialised.
--} 
+-- |
+--  State is used to keep the current task and the original task.
+--  currentTask: After sending an Input to Tophat, a new Task is returned. This task is kept in currentTask.
+--  originalTask: The original task contains the initial task. This task will be reloaded after a reset.
+--  initialised: used to determine if State is initialised.
 data State h t = State
   { currentTask :: TVar (Task RealWorld t),
     initialised :: Bool,
@@ -57,9 +53,9 @@ data State h t = State
 
 -- defining endpoints, request and response formats related to Tasks
 type TaskAPI =
-  "initial-task" :> Get '[JSON] JsonTask
-    :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] JsonTask
-    :<|> "reset" :> Get '[JSON] JsonTask
+  "initial-task" :> Get '[JSON] TaskDescription
+    :<|> "interact" :> ReqBody '[JSON] JsonInput :> Post '[JSON] TaskDescription
+    :<|> "reset" :> Get '[JSON] TaskDescription
 
 -- defining endpoints, request and response formats related to static files
 type StaticAPI = Get '[HTML] RawHtml :<|> Raw
@@ -92,9 +88,9 @@ interactIO i t = withIO <| interact i t
 initialiseIO :: Task RealWorld a -> IO (Task RealWorld a)
 initialiseIO t = withIO <| initialise t
 
--- Function takes a Task as an argument and returns List of Inputs (Communication with Tophat).
-inputsIO :: Task RealWorld a -> IO (List (Input Dummy))
-inputsIO t = withIO <| inputs t
+-- Transforms a task into a TaskDescription, which can be sent to the frontend.
+describeIO :: Task RealWorld a -> IO TaskDescription
+describeIO t = liftIO <| withIO <| describe t
 
 -- Polysemy
 withIO ::
@@ -110,22 +106,21 @@ withIO =
     >> runM
 
 -- Defining webservice to handle requests: defining handlers
-server :: ToJSON t => State h t -> ServerT API (AppM h t)
+server :: State h t -> ServerT API (AppM h t)
 server _ = taskServer :<|> staticServer
   where
     -- defining web server for tasks
-    taskServer :: ToJSON t => ServerT TaskAPI (AppM h t)
+    taskServer :: ServerT TaskAPI (AppM h t)
     taskServer = do
       initialTaskHandler
         :<|> interactHandler
         :<|> resetHandler
 
     -- handler that returns the initialised task
-    initialTaskHandler :: ToJSON t => AppM h t JsonTask
+    initialTaskHandler :: AppM h t TaskDescription
     initialTaskHandler = do
       initialisedTask <- getInitialisedTask
-      possibleInputs <- liftIO <| inputsIO initialisedTask
-      return (JsonTask initialisedTask possibleInputs)
+      liftIO <| describeIO initialisedTask
       where
         getInitialisedTask = do
           State {currentTask = t, initialised = i} <- ask
@@ -139,25 +134,23 @@ server _ = taskServer :<|> staticServer
                 return initialisedTask
 
     -- handler that takes a JsonInput and returns a new task.
-    interactHandler :: ToJSON t => JsonInput -> AppM h t JsonTask
+    interactHandler :: JsonInput -> AppM h t TaskDescription
     interactHandler (JsonInput input) = do
       State {currentTask = t} <- ask
       liftIO <| do
         t' <- readTVarIO t
         newTask <- interactIO input t'
         atomically <| writeTVar t newTask
-        possibleInputs <- inputsIO newTask
-        return (JsonTask newTask possibleInputs)
+        liftIO <| describeIO newTask
 
     -- handler that returns the original task.
-    resetHandler :: ToJSON t => AppM h t JsonTask
+    resetHandler :: AppM h t TaskDescription
     resetHandler = do
       State {currentTask = t, originalTask = t_o} <- ask
       liftIO <| do
         initialisedTask <- initialiseIO t_o
         atomically <| writeTVar t initialisedTask
-        possibleInputs <- inputsIO initialisedTask
-        return (JsonTask initialisedTask possibleInputs)
+        liftIO <| describeIO initialisedTask
 
     -- defining webservice for static files
     staticServer :: ServerT StaticAPI (AppM h t)
@@ -194,7 +187,7 @@ corsPolicy = cors (const <| Just policy)
         }
 
 -- | Create abstract web Application. The function takes a State as argument and returns an Application.
-application :: ToJSON t => State h t -> Application
+application :: State h t -> Application
 application s =
   corsPolicy
     <| serve (apiProxy s)

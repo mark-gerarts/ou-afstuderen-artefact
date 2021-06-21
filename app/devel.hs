@@ -3,15 +3,28 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import "tophat" Task (Label, Task, enter, select, update, view, (<?>), (>>?))
+import "tophat" Task
 import Visualize (visualizeTaskDevel)
-import "tophat" Prelude
+import "tophat" Prelude hiding (guard, repeat)
 
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
-main = visualizeTaskDevel startCandyMachine
+main = visualizeTaskDevel chatSession
 
 --Example tasks
+
+doubleShared :: (Reflect h) => Task h ((), Int)
+doubleShared = do
+  r <- share (0 :: Int)
+  m <- share (0 :: Int)
+  t2 r m >< t1 r m
+  where
+    t1 _ m = do
+      x <- change m
+      if x >= 10 then view (x * 2) else fail
+    t2 r m = do
+      y <- change r
+      if y >= 5 then m <<- 12 else fail
 
 enterTask :: Task h Bool
 enterTask = enter
@@ -94,3 +107,19 @@ data CandyMachineMood = Fair | Evil
 candyMachineDispenser :: CandyMachineMood -> Task h Text
 candyMachineDispenser Fair = view "You have paid. Here is your candy. Enjoy it!"
 candyMachineDispenser Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
+
+-- Share tasks
+
+chatSession :: Reflect h => Task h ((Text, ()), (Text, ()))
+chatSession = do
+  history <- share ""
+  chat "Tim" history >< chat "Nico" history
+  where
+    chat :: Text -> Store h Text -> Task h (Text, ())
+    chat name history =
+      watch history >< repeat (enter >>* ["Send" ~> append history name])
+
+    append :: Store h Text -> Text -> Text -> Task h ()
+    append history name msg = do
+      history <<= \h ->
+        (if h == "" then h else h ++ "\n") ++ name ++ ": '" ++ msg ++ "'"
