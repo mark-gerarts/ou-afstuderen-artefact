@@ -59,6 +59,9 @@ To create a new test suite:
 
 - Create a new test suite: `e2e/src/your-new-test.e2e.js`
 - Create a new task to test: `e2e/task/YourNewTest.hs`
+  - It is important to always create a new task for your tests. Every file in
+    `e2e/src/*` gets run in parallel, so reusing tasks can make the tests
+    interfere with each other.
 - Add a new entry to spin up a server in `e2e/jest-playwright.config.js`
   - Make sure you use a unique port number
   - Use this port in your test suite

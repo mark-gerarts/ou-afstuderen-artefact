@@ -24,8 +24,16 @@ describe('step', () => {
     test('it should increment the given value when clicking continue', async () => {
         // Explicitly set the value
         const newValue = Math.floor(Math.random() * 100);
-        await page.fill('input[type="number"]', newValue.toString());
-        await page.click(continueButtonSelector);
+
+        await Promise.all([
+            page.waitForResponse('**/interact'),
+            page.fill('input[type="number"]', newValue.toString())
+        ]);
+        await Promise.all([
+            page.waitForResponse('**/interact'),
+            page.click(continueButtonSelector)
+        ]);
+
         await expect(page).toEqualText('.panel-block p', (newValue + 1).toString())
     });
 });
