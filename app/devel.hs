@@ -56,8 +56,8 @@ multBySevenMachine =
     multBySeven x
 
 -- CandyMachine
-candyMachine :: HashMap Label (Task h (Text, Text))
-candyMachine =
+candy :: HashMap Label (Task h (Text, Text))
+candy =
   [ entry "Pure Chocolate" 8,
     entry "IO Chocolate" 7,
     entry "Sem Chocolate" 9
@@ -65,7 +65,7 @@ candyMachine =
   where
     entry :: Text -> Int -> (Label, Task h (Text, Text))
     entry name price =
-      (name, view "You need to pay:" >< (view price >>? \x -> candyMachinePayDesk x))
+      (name, view "You need to pay:" >< (view price >>? \x -> payCandy x))
 
 payCoin :: Int -> HashMap Label (Task h Int)
 payCoin bill =
@@ -78,19 +78,19 @@ payCoin bill =
     coinSize size = (display size, view (bill - size))
 
 startCandyMachine :: (Task h (Text, (Text, Text)))
-startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyMachine
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candy
 
-candyMachinePayDesk :: Int -> Task h Text
-candyMachinePayDesk bill =
+payCandy :: Int -> Task h Text
+payCandy bill =
   select (payCoin bill)
     >>? \billLeft ->
       case compare billLeft 0 of
-        EQ -> candyMachineDispenser Fair
-        LT -> candyMachineDispenser Evil
-        GT -> candyMachinePayDesk billLeft
+        EQ -> dispenseCandy Fair
+        LT -> dispenseCandy Evil
+        GT -> payCandy billLeft
 
 data CandyMachineMood = Fair | Evil
 
-candyMachineDispenser :: CandyMachineMood -> Task h Text
-candyMachineDispenser Fair = view "You have paid. Here is your candy. Enjoy it!"
-candyMachineDispenser Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
+dispenseCandy :: CandyMachineMood -> Task h Text
+dispenseCandy Fair = view "You have paid. Here is your candy. Enjoy it!"
+dispenseCandy Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
