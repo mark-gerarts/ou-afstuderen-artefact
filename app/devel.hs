@@ -56,8 +56,8 @@ multBySevenMachine =
     multBySeven x
 
 -- CandyMachine
-candy :: HashMap Label (Task h (Text, Text))
-candy =
+candyOptions :: HashMap Label (Task h (Text, Text))
+candyOptions =
   [ entry "Pure Chocolate" 8,
     entry "IO Chocolate" 7,
     entry "Sem Chocolate" 9
@@ -78,7 +78,7 @@ payCoin bill =
     coinSize size = (display size, view (bill - size))
 
 startCandyMachine :: (Task h (Text, (Text, Text)))
-startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candy
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyOptions
 
 payCandy :: Int -> Task h Text
 payCandy bill =

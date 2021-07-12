@@ -58,7 +58,7 @@ candyOptions =
   where
     entry :: Text -> Int -> (Label, Task h (Text, Text))
     entry name price =
-      (name, view "You need to pay:" >< (view price >>? candyMachinePayDesk))
+      (name, view "You need to pay:" >< (view price >>? payCandy))
 
 payCoin :: Int -> HashMap Label (Task h Int)
 payCoin bill =
@@ -73,17 +73,17 @@ payCoin bill =
 startCandyMachine :: (Task h (Text, (Text, Text)))
 startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyOptions
 
-candyMachinePayDesk :: Int -> Task h Text
-candyMachinePayDesk bill =
+payCandy :: Int -> Task h Text
+payCandy bill =
   select (payCoin bill)
     >>? \billLeft ->
       case compare billLeft 0 of
-        EQ -> candyMachineDispenser Fair
-        LT -> candyMachineDispenser Evil
-        GT -> candyMachinePayDesk billLeft
+        EQ -> dispenseCandy Fair
+        LT -> dispenseCandy Evil
+        GT -> payCandy billLeft
 
 data CandyMachineMood = Fair | Evil
 
-candyMachineDispenser :: CandyMachineMood -> Task h Text
-candyMachineDispenser Fair = view "You have paid. Here is your candy. Enjoy it!"
-candyMachineDispenser Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
+dispenseCandy :: CandyMachineMood -> Task h Text
+dispenseCandy Fair = view "You have paid. Here is your candy. Enjoy it!"
+dispenseCandy Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
