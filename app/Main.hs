@@ -8,7 +8,7 @@ main = visualizeTask startCandyMachine
 
 --Example tasks
 
-enterTask:: Task h Bool
+enterTask :: Task h Bool
 enterTask = enter
 
 stepViewUpdate :: Task h Text
@@ -43,16 +43,14 @@ multiplication :: Int -> Int -> Task h Int
 multiplication x y = view (x * y)
 
 multBySeven :: Int -> Task h Int
-multBySeven x = multiplication x 7
+multBySeven = multiplication 7
 
 multBySevenMachine :: Task h Int
-multBySevenMachine =
-  enter >>? \x ->
-    multBySeven x
+multBySevenMachine = enter >>? multBySeven
 
 -- CandyMachine
-candyMachine :: HashMap Label (Task h (Text, Text))
-candyMachine =
+candyOptions :: HashMap Label (Task h (Text, Text))
+candyOptions =
   [ entry "Pure Chocolate" 8,
     entry "IO Chocolate" 7,
     entry "Sem Chocolate" 9
@@ -60,7 +58,7 @@ candyMachine =
   where
     entry :: Text -> Int -> (Label, Task h (Text, Text))
     entry name price =
-      (name, view "You need to pay:" >< (view price >>? \x -> candyMachinePayDesk x))
+      (name, view "You need to pay:" >< (view price >>? candyMachinePayDesk))
 
 payCoin :: Int -> HashMap Label (Task h Int)
 payCoin bill =
@@ -73,7 +71,7 @@ payCoin bill =
     coinSize size = (display size, view (bill - size))
 
 startCandyMachine :: (Task h (Text, (Text, Text)))
-startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyMachine
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyOptions
 
 candyMachinePayDesk :: Int -> Task h Text
 candyMachinePayDesk bill =

@@ -30,14 +30,18 @@ main = visualizeTask calculateCaloriesTask
 
 calculateCaloriesTask :: Task h Text
 calculateCaloriesTask =
-  introduction >>? \_ ->
-    promptHeight >>? \(_, height) ->
-      promptWeight >>? \(_, weight) ->
-        promptAge >>? \(_, age) -> do
-          (_, gender) <- promptGender
-          (_, activityLevel) <- promptActivityLevel
-          let calories = calculateCalories gender activityLevel height weight age
-          view ("Your resting metabolic rate is: " <> display calories <> " calories per day.")
+  introduction >>? \_ -> do
+    (_, height) <- promptHeight
+    (_, weight) <- promptWeight
+    (_, age) <- promptAge
+    (_, gender) <- promptGender
+    (_, activityLevel) <- promptActivityLevel
+    let calories = calculateCalories gender activityLevel height weight age
+    view
+      ( "Your resting metabolic rate is: "
+          <> display calories
+          <> " calories per day."
+      )
 
 introduction :: Task h Text
 introduction =
