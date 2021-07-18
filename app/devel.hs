@@ -107,19 +107,3 @@ data CandyMachineMood = Fair | Evil
 candyMachineDispenser :: CandyMachineMood -> Task h Text
 candyMachineDispenser Fair = view "You have paid. Here is your candy. Enjoy it!"
 candyMachineDispenser Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
-
--- Share tasks
-
-chatSession :: Reflect h => Task h ((Text, ()), (Text, ()))
-chatSession = do
-  history <- share ""
-  chat "Tim" history >< chat "Nico" history
-  where
-    chat :: Text -> Store h Text -> Task h (Text, ())
-    chat name history =
-      watch history >< repeat (enter >>* ["Send" ~> append history name])
-
-    append :: Store h Text -> Text -> Text -> Task h ()
-    append history name msg = do
-      history <<= \h ->
-        (if h == "" then h else h ++ "\n") ++ name ++ ": '" ++ msg ++ "'"
