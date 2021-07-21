@@ -1,5 +1,5 @@
 // ChatSession.hs
-describe('string update', () => {
+describe('watch', () => {
     beforeEach(async () => {
         await Promise.all([
             page.goto('http://localhost:3015'),
