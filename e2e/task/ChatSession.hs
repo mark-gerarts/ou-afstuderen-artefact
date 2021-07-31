@@ -19,7 +19,7 @@ chatSession = do
   where
     chat :: Text -> Store h Text -> Task h ()
     chat name history =
-      repeat (enter >>* ["Send" ~> append history name])
+      repeat <| enter >>* ["Send" ~> append history name]
 
     append :: Store h Text -> Text -> Text -> Task h ()
     append history name msg = do

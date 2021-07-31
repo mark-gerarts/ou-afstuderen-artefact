@@ -12,14 +12,14 @@ import "tophat" Prelude hiding (guard, repeat)
 main :: IO ()
 main = visualizeTask chatSession
 
-chatSession :: Reflect h => Task h ((Text, ()), (Text, ()))
+chatSession :: Reflect h => Task h (Text, ((), ()))
 chatSession = do
   history <- share ""
-  chat "Tim" history >< chat "Nico" history
+  watch history >< (chat "Tim" history >< chat "Nico" history)
   where
-    chat :: Text -> Store h Text -> Task h (Text, ())
+    chat :: Text -> Store h Text -> Task h ()
     chat name history =
-      watch history >< repeat (enter >>* ["Send" ~> append history name])
+      repeat <| enter >>* ["Send" ~> append history name]
 
     append :: Store h Text -> Text -> Text -> Task h ()
     append history name msg = do
