@@ -1,23 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-{-|
-Module      : Visualize
-Description : Module to load web server with initial task.
-Copyright   : (c) Some Guy, 2013
-                  Someone Else, 2014
-License     : ...
-Maintainer  : sample@email.com
-Stability   : experimental
-
-Module to run a web server with a given task. It is possible to load a development or a production environment.
--}
-
+-- |
+-- Module      : Visualize
+-- Description : Module to load web server with initial task.
+-- Copyright   : (c) Some Guy, 2013
+--                   Someone Else, 2014
+-- License     : ...
+-- Maintainer  : sample@email.com
+-- Stability   : experimental
+--
+-- Module to run a web server with a given task. It is possible to load a development or a production environment.
 module Visualize (visualizeTask, visualizeTaskDevel) where
 
 import Application (State (..), application)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Data.Aeson (ToJSON)
 import Data.Maybe (fromJust)
 import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
@@ -33,7 +30,7 @@ toInt :: ToText a => a -> Int
 toInt = toText >> scan >> fromJust
 
 -- function that takes a task and returns an IO Application
-initApp :: ToJSON t => Task RealWorld t -> IO Application
+initApp :: Task RealWorld t -> IO Application
 initApp task = do
   currentTaskTVar <- atomically <| newTVar task
   let initialState =
@@ -57,10 +54,10 @@ watchTermFile =
         else do
           threadDelay 100000
           loop
-{-|
-  Run given task in development environment.
--} 
-visualizeTaskDevel :: ToJSON t => Task RealWorld t -> IO ()
+
+-- |
+--  Run given task in development environment.
+visualizeTaskDevel :: Task RealWorld t -> IO ()
 visualizeTaskDevel task =
   race_ watchTermFile <| do
     innerPort <- getEnv "PORT"
@@ -70,13 +67,12 @@ visualizeTaskDevel task =
     app <- initApp task
     run (toInt innerPort) (logStdoutDev app)
 
-{-|
-  Run given task in production environment.
--} 
-visualizeTask :: ToJSON t => Task RealWorld t -> IO ()
+-- |
+--  Run given task in production environment.
+visualizeTask :: Task RealWorld t -> IO ()
 visualizeTask task = do
   port <- lookupEnv "PORT"
   let realPort = toInt <| port ?: defaultPort
   putTextLn <| "Starting webserver at http://localhost:" <> display realPort
   app <- initApp task
-  run realPort app    
+  run realPort app

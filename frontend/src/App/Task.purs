@@ -60,12 +60,16 @@ data Editor
   | View Value
   | Enter
   | Select
+  | Change Value
+  | Watch Value
 
 instance showEditor :: Show Editor where
   show (Update x) = "Update " <> show x
   show (View x) = "View " <> show x
   show Enter = "Enter "
   show Select = "Select "
+  show (Change x) = "Change " <> show x
+  show (Watch x) = "Watch " <> show x
 
 instance decodeJsonEditor :: DecodeJson Editor where
   decodeJson json = do
@@ -82,6 +86,12 @@ instance decodeJsonEditor :: DecodeJson Editor where
         pure Enter
       "select" -> do
         pure Select
+      "change" -> do
+        value <- obj .: "value"
+        pure $ Change value
+      "watch" -> do
+        value <- obj .: "value"
+        pure $ Watch value
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
 data Name
