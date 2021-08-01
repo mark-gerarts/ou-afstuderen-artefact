@@ -31,6 +31,8 @@ module.exports = {
         serverConfigForTask('TemperatureCalculator.hs', 3012),
         serverConfigForTask('ContinueOnEnter.hs', 3013),
         serverConfigForTask('Validation.hs', 3014),
-        serverConfigForTask('Delay.hs', 3015)
+        serverConfigForTask('Delay.hs', 3015),
+        serverConfigForTask('ChatSession.hs', 3016),
+        serverConfigForTask('Change.hs', 3017)
     ]
 }

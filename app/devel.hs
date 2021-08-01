@@ -3,15 +3,28 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import "tophat" Task (Label, Task, enter, select, update, view, (<?>), (>>?))
+import "tophat" Task
 import Visualize (visualizeTaskDevel)
-import "tophat" Prelude
+import "tophat" Prelude hiding (guard, repeat)
 
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
-main = visualizeTaskDevel startCandyMachine
+main = visualizeTaskDevel chatSession
 
 --Example tasks
+
+doubleShared :: (Reflect h) => Task h ((), Int)
+doubleShared = do
+  r <- share (0 :: Int)
+  m <- share (0 :: Int)
+  t2 r m >< t1 r m
+  where
+    t1 _ m = do
+      x <- change m
+      if x >= 10 then view (x * 2) else fail
+    t2 r m = do
+      y <- change r
+      if y >= 5 then m <<- 12 else fail
 
 enterTask :: Task h Bool
 enterTask = enter

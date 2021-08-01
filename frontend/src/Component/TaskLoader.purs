@@ -175,7 +175,7 @@ renderTask (Edit name@(Named id) (Update value)) _ =
 
 renderTask (Edit name (View value)) _ =
   Bulma.panel ("View Task [" <> show name <> "]")
-    (HH.p_ [ HH.text $ show value ])
+    (HH.p [ css "preserve-linebreak" ] [ HH.text $ show value ])
 
 renderTask (Edit name@(Named id) Enter) inputDescriptions =
   let
@@ -219,6 +219,21 @@ renderTask (Edit name Select) inputDescriptions =
           , HH.div [ css "buttons" ] buttons
           ]
       )
+
+renderTask (Edit name@(Named id) (Change value)) _ =
+  Bulma.panel ("Change Task [" <> show name <> "]")
+    ( HH.div [ css "control" ]
+        [ HH.div [ css "field" ]
+            [ HH.label_ [ HH.text ("Value: ") ]
+            , HH.div [ css "control" ]
+                [ renderEditor id value ]
+            ]
+        ]
+    )
+
+renderTask (Edit name (Watch value)) _ =
+  Bulma.panel ("Watch Task [" <> show name <> "]")
+    (HH.p [ css "preserve-linebreak" ] [ HH.text $ show value ])
 
 renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
