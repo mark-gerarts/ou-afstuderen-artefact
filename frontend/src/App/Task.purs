@@ -22,6 +22,7 @@ import Partial.Unsafe (unsafePartial)
 data Task
   = Edit Name Editor
   | Pair Task Task
+  | Choose Task Task
   | Step Task
   | Done
   | Fail
@@ -29,6 +30,7 @@ data Task
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
+  show (Choose t1 t2) = "Choose [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
   show Done = "Done"
   show Fail = "Fail"
@@ -46,6 +48,10 @@ instance decodeJsonTask :: DecodeJson Task where
         t1 <- obj .: "t1"
         t2 <- obj .: "t2"
         pure $ Pair t1 t2
+      "choose" -> do
+        t1 <- obj .: "t1"
+        t2 <- obj .: "t2"
+        pure $ Choose t1 t2
       "step" -> do
         task <- obj .: "task"
         pure $ Step task
@@ -188,23 +194,33 @@ instance decodeJsonInputDescription :: DecodeJson InputDescription where
 
 isOption :: InputDescription -> Boolean
 isOption (OptionDescription _ _) = true
+
 isOption _ = false
 
 isUnnamed :: InputDescription -> Boolean
 isUnnamed (OptionDescription Unnamed _) = true
+
 isUnnamed _ = false
 
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
 isSelectedInputDescription id (InsertDescription id' _) = id == id'
+
 isSelectedInputDescription id (OptionDescription (Named id') _) = id == id'
+
 isSelectedInputDescription _ _ = false
 
 -- Function that returns an array of predefined values of editors.
 taskToArray :: Task -> Array Input -> Array Input
 taskToArray (Edit (Named id) (Update value)) array = Insert id value : array
+
 taskToArray (Edit (Named id) Enter) array = Insert id (String "") : array
+
 taskToArray (Pair t1 t2) array = taskToArray t2 (taskToArray t1 array)
+
+taskToArray (Choose t1 t2) array = taskToArray t2 (taskToArray t1 array)
+
 taskToArray (Step t) array = taskToArray t array
+
 taskToArray _ _ = []
 
 -- function to filter out a specific InputDescription in a given array of InputDescription.

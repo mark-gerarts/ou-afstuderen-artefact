@@ -51,7 +51,7 @@ let
     ${docker}/bin/docker run --rm -t e2e-tests
   '';
 
-in mkShell {
+in mkShell rec {
 
   nativeBuildInputs = [
     haskellPackages.yesod-bin

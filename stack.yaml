@@ -88,6 +88,7 @@ ghc-options:
 nix:
   packages:
     - zlib
+    - libffi
 
 build:
   # NOTE: global usage of haddock can cause build failures when documentation is

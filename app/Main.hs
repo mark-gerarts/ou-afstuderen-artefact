@@ -87,3 +87,12 @@ data CandyMachineMood = Fair | Evil
 dispenseCandy :: CandyMachineMood -> Task h Text
 dispenseCandy Fair = view "You have paid. Here is your candy. Enjoy it!"
 dispenseCandy Evil = view "You have paid too much, fool! You don't get change, but here is your candy."
+
+-- Example of a choice combinator: select a predefined option or enter your own
+chooseCountry :: Task h Text
+chooseCountry =
+  select
+    [ "The Netherlands" ~> update "The Netherlands",
+      "Belgium" ~> update "Belgium"
+    ]
+    <|> enter

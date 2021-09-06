@@ -244,6 +244,14 @@ renderTask (Pair t1 t2) inputDescriptions =
     , HH.div [ css "column" ] [ renderTask t2 inputDescriptions ]
     ]
 
+renderTask (Choose t1 t2) inputDescriptions =
+  HH.div
+    [ css "columns" ]
+    [ HH.div [ css "column" ] [ renderTask t1 inputDescriptions ]
+    , HH.div [ css "divider is-vertical" ] [ HH.text "OR" ]
+    , HH.div [ css "column" ] [ renderTask t2 inputDescriptions ]
+    ]
+
 renderTask (Step t) inputDescriptions = renderTask t inputDescriptions
 
 renderTask (Done) _ =

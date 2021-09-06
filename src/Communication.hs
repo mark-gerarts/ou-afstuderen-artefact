@@ -77,6 +77,15 @@ taskToJSON (Pair t1 t2) = do
         "t1" .= t1',
         "t2" .= t2'
       ]
+taskToJSON (Choose t1 t2) = do
+  t1' <- taskToJSON t1
+  t2' <- taskToJSON t2
+  pure
+    <| object
+      [ "type" .= String "choose",
+        "t1" .= t1',
+        "t2" .= t2'
+      ]
 taskToJSON (Step t _) = do
   t' <- taskToJSON t
   pure

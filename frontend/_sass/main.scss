@@ -4,6 +4,11 @@
 
 @import "../node_modules/bulma/bulma";
 
+// This is not the way to do this, but the documentation's installation
+// instructions did not work...
+// Normally you would expect "@creativebulma/bulma-divider" to work.
+@import "../node_modules/@creativebulma/bulma-divider/src/sass/index.sass";
+
 // Our custom classes
 .preserve-linebreak {
   white-space: pre-line
