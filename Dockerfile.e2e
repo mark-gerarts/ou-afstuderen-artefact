@@ -24,6 +24,11 @@ RUN npm ci --prefix=e2e
 # ... and for stack
 COPY stack.yaml.lock stack.yaml package.yaml ./
 
+# Cabal needs these, just create empty ones so we can install dependencies.
+RUN mkdir app src test
+
+RUN touch README.md
+
 RUN stack build --only-dependencies
 
 COPY frontend/package.json frontend/package-lock.json ./frontend/

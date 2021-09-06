@@ -33,6 +33,7 @@ module.exports = {
         serverConfigForTask('Validation.hs', 3014),
         serverConfigForTask('Delay.hs', 3015),
         serverConfigForTask('ChatSession.hs', 3016),
-        serverConfigForTask('Change.hs', 3017)
+        serverConfigForTask('Change.hs', 3017),
+        serverConfigForTask('Choose.hs', 3018)
     ]
 }
