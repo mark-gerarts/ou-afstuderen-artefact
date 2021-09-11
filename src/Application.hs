@@ -20,6 +20,7 @@ module Application (application, State (..)) where
 
 import Communication (JsonInput (..), TaskDescription (..), describe)
 import qualified Data.ByteString.Lazy as BS
+import Data.Store (RealWorld)
 import Data.Text (replace)
 import Network.HTTP.Media ((//), (/:))
 import Network.Wai (Middleware)
@@ -36,7 +37,7 @@ import Polysemy.Mutate
   )
 import Polysemy.Supply (Supply, supplyToIO)
 import Servant
-import Task (RealWorld, Task)
+import Task (Task)
 import Task.Input (Concrete (..), Input (..))
 import Task.Run (NotApplicable, Steps, initialise, interact)
 

@@ -21,6 +21,7 @@ import Partial.Unsafe (unsafePartial)
 
 data Task
   = Edit Name Editor
+  | Select Name Task
   | Pair Task Task
   | Choose Task Task
   | Step Task
@@ -29,6 +30,7 @@ data Task
 
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
+  show (Select name task) = "Select [" <> show name <> "] [" <> show task <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Choose t1 t2) = "Choose [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
@@ -44,6 +46,10 @@ instance decodeJsonTask :: DecodeJson Task where
         editor <- obj .: "editor"
         name <- obj .:? "name" .!= Unnamed
         pure $ Edit name editor
+      "select" -> do
+        name <- obj .:? "name" .!= Unnamed
+        t <- obj .: "t"
+        pure $ Select name t
       "pair" -> do
         t1 <- obj .: "t1"
         t2 <- obj .: "t2"
@@ -65,7 +71,6 @@ data Editor
   = Update Value
   | View Value
   | Enter
-  | Select
   | Change Value
   | Watch Value
 
@@ -73,7 +78,6 @@ instance showEditor :: Show Editor where
   show (Update x) = "Update " <> show x
   show (View x) = "View " <> show x
   show Enter = "Enter "
-  show Select = "Select "
   show (Change x) = "Change " <> show x
   show (Watch x) = "Watch " <> show x
 
@@ -90,8 +94,6 @@ instance decodeJsonEditor :: DecodeJson Editor where
         pure $ View value
       "enter" -> do
         pure Enter
-      "select" -> do
-        pure Select
       "change" -> do
         value <- obj .: "value"
         pure $ Change value
@@ -147,11 +149,11 @@ instance encodeJsonValue :: EncodeJson Value where
 
 data Input
   = Insert Int Value
-  | Option Name String
+  | Decide Int String
 
 instance showInput :: Show Input where
   show (Insert id x) = "Insert [" <> show x <> "] [" <> show id <> "]"
-  show (Option name label) = "Option [" <> label <> "] [" <> show name <> "]"
+  show (Decide id label) = "Decide [" <> label <> "] [" <> show id <> "]"
 
 instance encodeInput :: EncodeJson Input where
   encodeJson (Insert id value) =
@@ -161,21 +163,21 @@ instance encodeInput :: EncodeJson Input where
       ~> "id"
       := id
       ~> jsonEmptyObject
-  encodeJson (Option name label) =
-    "type" := "option"
-      ~> "name"
-      := name
+  encodeJson (Decide id label) =
+    "type" := "decide"
+      ~> "id"
+      := id
       ~> "label"
       := label
       ~> jsonEmptyObject
 
 data InputDescription
   = InsertDescription Int String
-  | OptionDescription Name String
+  | DecideDescription Int String
 
 instance showInputDescription :: Show InputDescription where
   show (InsertDescription id x) = "Insert [" <> show x <> "] [" <> show id <> "]"
-  show (OptionDescription name label) = "Option [" <> label <> "] [" <> show name <> "]"
+  show (DecideDescription name label) = "Decide [" <> label <> "] [" <> show name <> "]"
 
 instance decodeJsonInputDescription :: DecodeJson InputDescription where
   decodeJson json = do
@@ -186,28 +188,21 @@ instance decodeJsonInputDescription :: DecodeJson InputDescription where
         value <- obj .: "value"
         id <- obj .: "id"
         pure $ InsertDescription id value
-      "option" -> do
+      "decide" -> do
         label <- obj .: "label"
-        name <- obj .:? "name" .!= Unnamed
-        pure $ OptionDescription name label
+        id <- obj .: "id"
+        pure $ DecideDescription id label
       _ -> Left (JsonDecodeError.UnexpectedValue json)
 
-isOption :: InputDescription -> Boolean
-isOption (OptionDescription _ _) = true
+isDecide :: InputDescription -> Boolean
+isDecide (DecideDescription _ _) = true
 
-isOption _ = false
-
-isUnnamed :: InputDescription -> Boolean
-isUnnamed (OptionDescription Unnamed _) = true
-
-isUnnamed _ = false
+isDecide _ = false
 
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
 isSelectedInputDescription id (InsertDescription id' _) = id == id'
 
-isSelectedInputDescription id (OptionDescription (Named id') _) = id == id'
-
-isSelectedInputDescription _ _ = false
+isSelectedInputDescription id (DecideDescription id' _) = id == id'
 
 -- Function that returns an array of predefined values of editors.
 taskToArray :: Task -> Array Input -> Array Input

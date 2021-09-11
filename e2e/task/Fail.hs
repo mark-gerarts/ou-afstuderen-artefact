@@ -3,7 +3,7 @@
 
 module Fail where
 
-import Task (Task (..))
+import Task.Syntax (Task (Fail))
 import Visualize (visualizeTask)
 import "tophat" Prelude
 

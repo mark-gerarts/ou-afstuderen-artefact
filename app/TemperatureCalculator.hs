@@ -5,7 +5,8 @@
 
 module TemperatureCalculator where
 
-import Task (Task (..), enter, select, view, (>>?))
+import Task (enter, pick, view, (>>?))
+import Task.Syntax (Task)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
@@ -15,13 +16,11 @@ main :: IO ()
 main = visualizeTask tempuratureCalculator
 
 tempuratureCalculator :: Task h Text
-tempuratureCalculator = do
-  conversion <-
-    select
-      [ "Celcius to Fahrenheit" ~> Done CelciusToFahrenheit,
-        "Fahrenheit to Celcius" ~> Done FahrenheitToCelcius
-      ]
-  convert conversion
+tempuratureCalculator =
+  pick
+    [ "Celcius to Fahrenheit" ~> convert CelciusToFahrenheit,
+      "Fahrenheit to Celcius" ~> convert FahrenheitToCelcius
+    ]
 
 convert :: Conversion -> Task h Text
 convert conversionType =

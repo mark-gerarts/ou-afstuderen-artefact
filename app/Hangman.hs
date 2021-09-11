@@ -8,7 +8,8 @@ module Hangman where
 
 import Data.List (intersect, (\\))
 import Data.Text (chunksOf, isInfixOf, singleton)
-import Task (Task (..), select, view)
+import Task (pick, view)
+import Task.Syntax (Task)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
@@ -59,7 +60,7 @@ renderState s@GameState {..} = do
       | otherwise = view <| display lives <> " guesses left."
 
     renderInput =
-      select
+      pick
         <| fromList [(letter, view letter) | letter <- alphabet \\ usedLetters]
 
 maskWord :: Text -> [Text] -> Text

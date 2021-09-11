@@ -23,7 +23,7 @@ module.exports = {
         serverConfigForTask('Step.hs', 3004),
         serverConfigForTask('View.hs', 3005),
         serverConfigForTask('Select.hs', 3006),
-        serverConfigForTask('Done.hs', 3007),
+        serverConfigForTask('Lift.hs', 3007),
         serverConfigForTask('Fail.hs', 3008),
         serverConfigForTask('EnterString.hs', 3009),
         serverConfigForTask('EnterBoolean.hs', 3010),

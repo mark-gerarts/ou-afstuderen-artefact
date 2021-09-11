@@ -9,12 +9,12 @@ packages:
     version: 0.2.0.0
     git: https://github.com/timjs/tophat-haskell
     pantry-tree:
-      size: 1707
-      sha256: 63f4cee424e6e983a50bf9aa17979ce2c5609616e91dde5cc3f39f16c75b0351
-    commit: 202f69880d8fdaeaa5eb165dd34d079e5b8e38af
+      size: 1766
+      sha256: 9b5202855416427c82baa8bdf9b78c0560b2934106ad60f4f4d5de73a47ee976
+    commit: c888216ce45d01a5d792abd4370b8168df7f9f9d
   original:
     git: https://github.com/timjs/tophat-haskell
-    commit: 202f69880d8fdaeaa5eb165dd34d079e5b8e38af
+    commit: c888216ce45d01a5d792abd4370b8168df7f9f9d
 - completed:
     hackage: base-noprelude-4.13.0.0@sha256:3cccbfda38e1422ca5cc436d58858ba51ff9114d2ed87915a6569be11e4e5a90,6842
     pantry-tree:

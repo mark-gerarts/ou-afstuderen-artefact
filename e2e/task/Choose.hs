@@ -5,7 +5,8 @@
 
 module Choose where
 
-import Task (Task (..), enter, select, update)
+import Task (enter, pick, update)
+import Task.Syntax (Task)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
@@ -18,7 +19,7 @@ main =
 
 chooseCountry :: Task h Text
 chooseCountry =
-  select
+  pick
     [ "The Netherlands" ~> update "The Netherlands",
       "Belgium" ~> update "Belgium"
     ]

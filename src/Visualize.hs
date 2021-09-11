@@ -16,12 +16,13 @@ import Application (State (..), application)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Data.Maybe (fromJust)
+import Data.Store (RealWorld)
 import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import System.Directory (doesFileExist)
 import System.Environment (getEnv, lookupEnv)
-import Task (RealWorld, Task)
+import Task (Task)
 
 defaultPort :: [Char]
 defaultPort = "3000"

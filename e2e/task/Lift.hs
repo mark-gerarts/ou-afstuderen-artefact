@@ -3,9 +3,9 @@
 
 module Done where
 
-import Task (Task (..))
+import Task.Syntax (Task (..))
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
 main :: IO ()
-main = visualizeTask <| Done ()
+main = visualizeTask <| Lift ()

@@ -46,11 +46,9 @@ packages:
 #
 extra-deps:
   # TopHat and all its dependencies
-  #- git: https://github.com/timjs/tophat-haskell.git
-  #  commit: 665d620ded5b61c454b6c50b8590f0d3f21c055f
-  # Use a fork until confirmed & patched in the main repo
+  # Currently the exp-select branch
   - git: https://github.com/timjs/tophat-haskell
-    commit: 202f69880d8fdaeaa5eb165dd34d079e5b8e38af
+    commit: c888216ce45d01a5d792abd4370b8168df7f9f9d
   - base-noprelude-4.13.0.0@sha256:3cccbfda38e1422ca5cc436d58858ba51ff9114d2ed87915a6569be11e4e5a90,6842
   - lens-simple-0.1.0.9@sha256:3a4dd8038cba624793d18667e95f91cdd5ed7b7607fea2b51a432bd51dc34ece,5626
   - polysemy-1.5.0.0@sha256:7edb723e7f703fe273a40e43fe33f6e8f7659fe60759e8698def1481262d314d,6246

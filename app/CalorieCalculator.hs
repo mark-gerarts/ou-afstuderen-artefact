@@ -5,7 +5,8 @@
 
 module CalorieCalculator where
 
-import Task (Task (..), enter, select, view, (>>?))
+import Task (enter, pick, view, (>>?))
+import Task.Syntax (Task (Lift))
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
@@ -55,9 +56,9 @@ introduction =
 promptGender :: Task h (Text, Gender)
 promptGender =
   view "Select your gender:"
-    >< select
-      [ "Male" ~> Done Male,
-        "Female" ~> Done Female
+    >< pick
+      [ "Male" ~> Lift Male,
+        "Female" ~> Lift Female
       ]
 
 promptHeight :: Task h (Text, Height)
@@ -72,11 +73,11 @@ promptAge = view "Enter your age:" >< enter
 promptActivityLevel :: Task h (Text, ActivityLevel)
 promptActivityLevel =
   view "What is your activity level?"
-    >< select
-      [ "Sedentary" ~> Done Sedentary,
-        "Low active" ~> Done Low,
-        "Active" ~> Done Active,
-        "Very Active" ~> Done VeryActive
+    >< pick
+      [ "Sedentary" ~> Lift Sedentary,
+        "Low active" ~> Lift Low,
+        "Active" ~> Lift Active,
+        "Very Active" ~> Lift VeryActive
       ]
 
 calculateCalories :: Gender -> ActivityLevel -> Height -> Weight -> Age -> Int

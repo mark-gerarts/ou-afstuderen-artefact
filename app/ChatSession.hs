@@ -5,7 +5,8 @@
 
 module ChatSession where
 
-import Task (Store (..), Task (..), enter, repeat, share, watch, (<<=), (>>*))
+import Task.Syntax (Task, Store)
+import Task (enter, repeat, share, watch, (<<=), (>>*))
 import Visualize (visualizeTask)
 import "tophat" Prelude hiding (guard, repeat)
 

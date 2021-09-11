@@ -4,12 +4,24 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 import "tophat" Task
+import "tophat" Task.Syntax (Label)
 import Visualize (visualizeTaskDevel)
 import "tophat" Prelude hiding (guard, repeat)
 
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
-main = visualizeTaskDevel chatSession
+main =
+  visualizeTaskDevel <| pickAorB >< pickC
+
+pickAorB :: Task h Text
+pickAorB =
+  pick
+    [ "A" ~> view "Clicked A",
+      "B" ~> view "Clicked B"
+    ]
+
+pickC :: Task h Text
+pickC = pick ["C" ~> view ("Clicked C" :: Text) >>? \_ -> view "Continued"]
 
 --Example tasks
 
@@ -50,7 +62,7 @@ pick2 = view 1 <?> view 2
 
 pick3' :: Task h Int
 pick3' =
-  select
+  pick
     [ "B" ~> view 22,
       "A" ~> view 11
     ]
@@ -69,7 +81,7 @@ multBySevenMachine =
     multBySeven x
 
 -- CandyMachine
-candyOptions :: HashMap Label (Task h (Text, Text))
+candyOptions :: Assoc Label (Task h (Text, Text))
 candyOptions =
   [ entry "Pure Chocolate" 8,
     entry "IO Chocolate" 7,
@@ -80,7 +92,7 @@ candyOptions =
     entry name price =
       (name, view "You need to pay:" >< (view price >>? \x -> payCandy x))
 
-payCoin :: Int -> HashMap Label (Task h Int)
+payCoin :: Int -> Assoc Label (Task h Int)
 payCoin bill =
   [ coinSize 5,
     coinSize 2,
@@ -91,11 +103,11 @@ payCoin bill =
     coinSize size = (display size, view (bill - size))
 
 startCandyMachine :: (Task h (Text, (Text, Text)))
-startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyOptions
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< pick candyOptions
 
 payCandy :: Int -> Task h Text
 payCandy bill =
-  select (payCoin bill)
+  pick (payCoin bill)
     >>? \billLeft ->
       case compare billLeft 0 of
         EQ -> dispenseCandy Fair
@@ -114,7 +126,7 @@ choose1 = enter <|> enter
 -- Example of a choice combinator: select a predefined option or enter your own
 chooseCountry :: Task h Text
 chooseCountry =
-  select
+  pick
     [ "The Netherlands" ~> update "The Netherlands",
       "Belgium" ~> update "Belgium"
     ]

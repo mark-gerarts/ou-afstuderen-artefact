@@ -13,12 +13,13 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isOption, isSelectedInputDescription, isUnnamed, selectInputDescription)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isDecide, isSelectedInputDescription, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form as Form
 import Component.HTML.Utils (css)
 import Data.Array (filter, head)
 import Data.Either (Either(..))
+import Data.Foldable (elem, null)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
@@ -108,9 +109,9 @@ handleAction (HandleKey _ ev) = do
   when (KE.key ev == "Enter") do
     { inputDescriptions: inputDescriptions } <- H.get
     let
-      unnamedOptions = getUnnamedOptions inputDescriptions
-    case head unnamedOptions of
-      Just (OptionDescription name label) -> handleAction (Interact (Option name label))
+      specialActions = filter isSpecialAction inputDescriptions
+    case head specialActions of
+      Just (DecideDescription id label) -> handleAction (Interact (Decide id label))
       _ -> pure unit
 
 handleAction Reset = do
@@ -183,7 +184,7 @@ renderTask (Edit name@(Named id) Enter) inputDescriptions =
     inputDescriptionWanted :: String
     inputDescriptionWanted = case selectInputDescription id inputDescriptions of
       InsertDescription _ value -> value
-      OptionDescription _ _ -> "Should not be possible?"
+      DecideDescription _ _ -> "Should not be possible?"
 
     -- Auxiliary function that is needed to determine the type of the editor. Initial Values: right type, dummy values.
     typeOfEditor :: Value
@@ -203,23 +204,6 @@ renderTask (Edit name@(Named id) Enter) inputDescriptions =
           ]
       )
 
-renderTask (Edit name Select) inputDescriptions =
-  let
-    id = case name of
-      Unnamed -> -1
-      (Named id') -> id'
-
-    options = filter (\x -> isOption x && isSelectedInputDescription id x) inputDescriptions
-
-    buttons = map renderInput options
-  in
-    Bulma.panel ("Select Task [" <> show name <> "]")
-      ( HH.div_
-          [ HH.p [ css "my-1" ] [ HH.text "Choose an option below:" ]
-          , HH.div [ css "buttons" ] buttons
-          ]
-      )
-
 renderTask (Edit name@(Named id) (Change value)) _ =
   Bulma.panel ("Change Task [" <> show name <> "]")
     ( HH.div [ css "control" ]
@@ -236,6 +220,33 @@ renderTask (Edit name (Watch value)) _ =
     (HH.p [ css "preserve-linebreak" ] [ HH.text $ show value ])
 
 renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
+
+-- Select is a special case. It can act as a sort of step, where the result of
+-- the wrapped task decides the next action, but it can also act as a list of
+-- predefined inputs (see: pick).
+-- If we're in the former case we render the wrapped task, otherwise the
+-- possible options.
+-- We decide which case we're in by looking if there are any non-special inputs.
+-- If there are, we're looking at the pick-case.
+renderTask (Select name task) inputDescriptions =
+  let
+    id = case name of
+      Unnamed -> -1
+      (Named id') -> id'
+
+    options = filter (\x -> isDecide x && isSelectedInputDescription id x && not isSpecialAction x) inputDescriptions
+
+    buttons = map renderInput options
+  in
+    if null options then
+      renderTask task inputDescriptions
+    else
+      Bulma.panel ("Select Task [" <> show name <> "]")
+        ( HH.div_
+            [ HH.p [ css "my-1" ] [ HH.text "Choose an option below:" ]
+            , HH.div [ css "buttons" ] buttons
+            ]
+        )
 
 renderTask (Pair t1 t2) inputDescriptions =
   HH.div
@@ -280,17 +291,17 @@ renderEditorEnter id value = case value of
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
 renderInputs inputDescriptions =
   let
-    unnamedOptions = getUnnamedOptions inputDescriptions
+    specialActions = filter isSpecialAction inputDescriptions
 
-    buttons = renderActionButtons <> map renderInput unnamedOptions
+    buttons = renderActionButtons <> map renderInput specialActions
   in
     HH.div [ css "buttons is-right" ] buttons
 
 -- Function that renders buttons that belong to a Select task.
 renderInput :: forall a. InputDescription -> HH.HTML a Action
-renderInput (OptionDescription name label) =
+renderInput (DecideDescription id label) =
   HH.button
-    [ css "button is-primary", HE.onClick \_ -> Interact (Option name label) ]
+    [ css "button is-primary", HE.onClick \_ -> Interact (Decide id label) ]
     [ HH.text label ]
 
 renderInput _ = HH.div_ []
@@ -312,8 +323,10 @@ renderActionButtons =
       [ HH.text "Log state" ]
   ]
 
-getUnnamedOptions :: Array InputDescription -> Array InputDescription
-getUnnamedOptions = filter (\x -> isOption x && isUnnamed x)
+isSpecialAction :: InputDescription -> Boolean
+isSpecialAction (DecideDescription _ label) = label `elem` [ "Continue", "Repeat", "Exit" ]
+
+isSpecialAction _ = false
 
 -- Each form field is a child component that manages its owns state. An output
 -- event is only fired when the provided value is valid.

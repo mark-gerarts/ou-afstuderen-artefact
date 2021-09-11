@@ -1,10 +1,11 @@
 module Main where
 
-import Task (Label, Task, enter, select, update, view, (<?>), (>>?))
+import Task (enter, pick, update, view, (<?>), (>>?))
+import Task.Syntax (Label, Task)
 import Visualize (visualizeTask)
 
 main :: IO ()
-main = visualizeTask startCandyMachine
+main = visualizeTask enterTask
 
 --Example tasks
 
@@ -32,7 +33,7 @@ pick2 = view 1 <?> view 2
 
 pick3' :: Task h Int
 pick3' =
-  select
+  pick
     [ "B" ~> view 22,
       "A" ~> view 11
     ]
@@ -49,7 +50,7 @@ multBySevenMachine :: Task h Int
 multBySevenMachine = enter >>? multBySeven
 
 -- CandyMachine
-candyOptions :: HashMap Label (Task h (Text, Text))
+candyOptions :: Assoc Label (Task h (Text, Text))
 candyOptions =
   [ entry "Pure Chocolate" 8,
     entry "IO Chocolate" 7,
@@ -60,7 +61,7 @@ candyOptions =
     entry name price =
       (name, view "You need to pay:" >< (view price >>? payCandy))
 
-payCoin :: Int -> HashMap Label (Task h Int)
+payCoin :: Int -> Assoc Label (Task h Int)
 payCoin bill =
   [ coinSize 5,
     coinSize 2,
@@ -71,11 +72,11 @@ payCoin bill =
     coinSize size = (display size, view (bill - size))
 
 startCandyMachine :: (Task h (Text, (Text, Text)))
-startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< select candyOptions
+startCandyMachine = view "We offer you three chocolate bars. Pure Chocolate: It's all in the name. IO Chocolate: Chocolate with unpredictable side effects. Sem Chocolate: don't try to understand, just eat it!" >< pick candyOptions
 
 payCandy :: Int -> Task h Text
 payCandy bill =
-  select (payCoin bill)
+  pick (payCoin bill)
     >>? \billLeft ->
       case compare billLeft 0 of
         EQ -> dispenseCandy Fair
@@ -91,7 +92,7 @@ dispenseCandy Evil = view "You have paid too much, fool! You don't get change, b
 -- Example of a choice combinator: select a predefined option or enter your own
 chooseCountry :: Task h Text
 chooseCountry =
-  select
+  pick
     [ "The Netherlands" ~> update "The Netherlands",
       "Belgium" ~> update "Belgium"
     ]

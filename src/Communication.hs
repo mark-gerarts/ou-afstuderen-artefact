@@ -25,9 +25,9 @@ import Data.Scientific (toBoundedInteger)
 import qualified Data.Store as Store
 import Polysemy (Members, Sem)
 import Polysemy.Mutate (Alloc, Read)
-import Task
-import Task.Input (Concrete (..), Dummy, Input (..))
+import Task.Input (Abstract, Concrete (..), Input (..))
 import qualified Task.Observe as Task (inputs)
+import Task.Syntax
 
 newtype NotImplementedException = NotImplementedException Text deriving (Debug)
 
@@ -35,7 +35,7 @@ instance Exception NotImplementedException
 
 type JsonTask = Value
 
-type InputDescriptions = List (Input Dummy)
+type InputDescriptions = List (Input Abstract)
 
 -- | We wrap the Task and its inputs in a new datatype and use regular functions
 --  to encode them to JSON to prevent orphaned instances.
@@ -77,6 +77,15 @@ taskToJSON (Pair t1 t2) = do
         "t1" .= t1',
         "t2" .= t2'
       ]
+taskToJSON (Select name t labels) = do
+  t' <- taskToJSON t
+  pure
+    <| object
+      [ "type" .= String "select",
+        "t" .= t',
+        "labels" .= map fst labels,
+        "name" .= nameToJSON name
+      ]
 taskToJSON (Choose t1 t2) = do
   t1' <- taskToJSON t1
   t2' <- taskToJSON t2
@@ -93,7 +102,7 @@ taskToJSON (Step t _) = do
       [ "type" .= String "step",
         "task" .= t'
       ]
-taskToJSON (Done _) =
+taskToJSON (Lift _) =
   pure
     <| object
       [ "type" .= String "done"
@@ -127,11 +136,6 @@ editorToJSON Enter =
     <| object
       [ "type" .= String "enter"
       ]
-editorToJSON (Select _) =
-  pure
-    <| object
-      [ "type" .= String "select"
-      ]
 editorToJSON (Change l) = do
   value <- Store.read l
   pure
@@ -147,17 +151,17 @@ editorToJSON (Watch l) = do
         "value" .= value
       ]
 
-inputToJSON :: Input Dummy -> Value
+inputToJSON :: Input Abstract -> Value
 inputToJSON (Insert id value) =
   object
     [ "type" .= String "insert",
       "id" .= id,
       "value" .= display value
     ]
-inputToJSON (Option name label) =
+inputToJSON (Decide id label) =
   object
-    [ "type" .= String "option",
-      "name" .= nameToJSON name,
+    [ "type" .= String "decide",
+      "id" .= id,
       "label" .= label
     ]
 
@@ -176,10 +180,10 @@ instance FromJSON JsonInput where
           id <- obj .: "id"
           value <- obj .: "value" >>= parseConcrete
           pure (JsonInput (Insert id value))
-        ("option" :: Text) -> do
-          name <- obj .: "name" >>= parseName
+        ("decide" :: Text) -> do
+          id <- obj .: "id"
           label <- obj .: "label"
-          pure (JsonInput (Option name label))
+          pure (JsonInput (Decide id label))
         _ -> parseFail "Invalid input type"
 
 parseConcrete :: Value -> Parser Concrete
@@ -190,11 +194,3 @@ parseConcrete (Number x) =
     Nothing -> parseFail "Invalid integer value"
 parseConcrete (Bool b) = return (Concrete b)
 parseConcrete _ = parseFail "Unsupported type"
-
-parseName :: Value -> Parser Name
-parseName (Number i) =
-  case toBoundedInteger i of
-    Just i' -> return (Named i')
-    Nothing -> parseFail "Unexpected name"
-parseName Null = return Unnamed
-parseName _ = parseFail "Unexpected name"

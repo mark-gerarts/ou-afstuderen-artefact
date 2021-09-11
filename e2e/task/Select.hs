@@ -5,7 +5,8 @@
 
 module Select where
 
-import Task (Task (..), select, view, (>>?))
+import Task (pick, view, (>>?))
+import Task.Syntax (Task)
 import Visualize (visualizeTask)
 import "tophat" Prelude
 
@@ -19,10 +20,10 @@ main =
 
 pickAorB :: Task h Text
 pickAorB =
-  select
+  pick
     [ "A" ~> view "Clicked A",
       "B" ~> view "Clicked B"
     ]
 
 pickC :: Task h Text
-pickC = select ["C" ~> view ("Clicked C" :: Text) >>? \_ -> view "Continued"]
+pickC = pick ["C" ~> view ("Clicked C" :: Text) >>? \_ -> view "Continued"]
