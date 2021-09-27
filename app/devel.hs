@@ -11,7 +11,14 @@ import "tophat" Prelude hiding (guard, repeat)
 -- This file is used for development purposes in combination with yesod-devel.
 main :: IO ()
 main =
-  visualizeTaskDevel <| pickAorB >< pickC
+  visualizeTaskDevel incdec
+
+incdec :: Task h Int
+incdec =
+  (view ("Kies één van de opties" :: Text) >< update (-3))
+    >>* [ "Inc" ~> \(_, x) -> view (x + 1),
+          "Dec" ~> \(_, x) -> if x > 0 then view (x -1) else fail
+        ]
 
 pickAorB :: Task h Text
 pickAorB =

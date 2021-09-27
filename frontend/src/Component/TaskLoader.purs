@@ -13,19 +13,19 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isDecide, isSelectedInputDescription, selectInputDescription)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), hasLabel, isDecide, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form as Form
 import Component.HTML.Utils (css)
-import Data.Array (filter, head)
+import Data.Array (filter, find, head)
 import Data.Either (Either(..))
-import Data.Foldable (elem, null)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (logShow)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties (disabled)
 import Halogen.HTML.Properties as HP
 import Halogen.Query.Event (eventListener)
 import Type.Proxy (Proxy(..))
@@ -109,7 +109,7 @@ handleAction (HandleKey _ ev) = do
   when (KE.key ev == "Enter") do
     { inputDescriptions: inputDescriptions } <- H.get
     let
-      specialActions = filter isSpecialAction inputDescriptions
+      specialActions = filter isDecide inputDescriptions
     case head specialActions of
       Just (DecideDescription id label) -> handleAction (Interact (Decide id label))
       _ -> pure unit
@@ -221,32 +221,31 @@ renderTask (Edit name (Watch value)) _ =
 
 renderTask (Edit Unnamed _) _ = HH.p_ [ HH.text "An unnamed editor should not be possible?" ]
 
--- Select is a special case. It can act as a sort of step, where the result of
--- the wrapped task decides the next action, but it can also act as a list of
--- predefined inputs (see: pick).
--- If we're in the former case we render the wrapped task, otherwise the
--- possible options.
--- We decide which case we're in by looking if there are any non-special inputs.
--- If there are, we're looking at the pick-case.
-renderTask (Select name task) inputDescriptions =
+renderTask (Select name task labels) inputDescriptions =
   let
-    id = case name of
-      Unnamed -> -1
-      (Named id') -> id'
+    nameHasId id = case name of
+      Unnamed -> false
+      (Named id') -> id == id'
 
-    options = filter (\x -> isDecide x && isSelectedInputDescription id x && not isSpecialAction x) inputDescriptions
+    matches label inputDescription = case inputDescription of
+      (InsertDescription _ _) -> false
+      (DecideDescription id' label') -> nameHasId id' && label' == label
 
-    buttons = map renderInput options
+    labelToInput label = case find (matches label) inputDescriptions of
+      Just input -> input
+      Nothing -> (DecideDescription (-1) label)
+
+    buttons = map (renderInput <<< labelToInput) labels
   in
-    if null options then
-      renderTask task inputDescriptions
-    else
-      Bulma.panel ("Select Task [" <> show name <> "]")
-        ( HH.div_
-            [ HH.p [ css "my-1" ] [ HH.text "Choose an option below:" ]
-            , HH.div [ css "buttons" ] buttons
-            ]
-        )
+    case task of
+      Done ->
+        Bulma.panel ("Select Task [" <> show name <> "]")
+          (HH.div [ css "buttons is-right" ] buttons)
+      _ ->
+        HH.div [ css "select-task" ]
+          [ renderTask task inputDescriptions
+          , HH.div [ css "buttons is-right pt-1" ] buttons
+          ]
 
 renderTask (Pair t1 t2) inputDescriptions =
   HH.div
@@ -289,19 +288,17 @@ renderEditorEnter id value = case value of
 
 -- Function that renders buttons that do not belong to a Select task.
 renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
-renderInputs inputDescriptions =
-  let
-    specialActions = filter isSpecialAction inputDescriptions
-
-    buttons = renderActionButtons <> map renderInput specialActions
-  in
-    HH.div [ css "buttons is-right" ] buttons
+renderInputs inputDescriptions = HH.div [ css "buttons is-right" ] renderActionButtons
 
 -- Function that renders buttons that belong to a Select task.
 renderInput :: forall a. InputDescription -> HH.HTML a Action
 renderInput (DecideDescription id label) =
   HH.button
-    [ css "button is-primary", HE.onClick \_ -> Interact (Decide id label) ]
+    [ css "button is-primary"
+    , case id of
+        (-1) -> disabled true
+        _ -> HE.onClick \_ -> Interact (Decide id label)
+    ]
     [ HH.text label ]
 
 renderInput _ = HH.div_ []
@@ -322,11 +319,6 @@ renderActionButtons =
       ]
       [ HH.text "Log state" ]
   ]
-
-isSpecialAction :: InputDescription -> Boolean
-isSpecialAction (DecideDescription _ label) = label `elem` [ "Continue", "Repeat", "Exit" ]
-
-isSpecialAction _ = false
 
 -- Each form field is a child component that manages its owns state. An output
 -- event is only fired when the provided value is valid.

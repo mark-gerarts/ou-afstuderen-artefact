@@ -9,7 +9,11 @@
 // Normally you would expect "@creativebulma/bulma-divider" to work.
 @import "../node_modules/@creativebulma/bulma-divider/src/sass/index.sass";
 
-// Our custom classes
+// Our custom CSS
 .preserve-linebreak {
   white-space: pre-line
+}
+
+.panel {
+  height: 100%;
 }

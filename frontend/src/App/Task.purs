@@ -19,9 +19,12 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromJust)
 import Partial.Unsafe (unsafePartial)
 
+type Labels
+  = Array String
+
 data Task
   = Edit Name Editor
-  | Select Name Task
+  | Select Name Task Labels
   | Pair Task Task
   | Choose Task Task
   | Step Task
@@ -30,7 +33,7 @@ data Task
 
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
-  show (Select name task) = "Select [" <> show name <> "] [" <> show task <> "]"
+  show (Select name task _) = "Select [" <> show name <> "] [" <> show task <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Choose t1 t2) = "Choose [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
@@ -49,7 +52,8 @@ instance decodeJsonTask :: DecodeJson Task where
       "select" -> do
         name <- obj .:? "name" .!= Unnamed
         t <- obj .: "t"
-        pure $ Select name t
+        labels <- obj .: "labels"
+        pure $ Select name t labels
       "pair" -> do
         t1 <- obj .: "t1"
         t2 <- obj .: "t2"
@@ -198,6 +202,11 @@ isDecide :: InputDescription -> Boolean
 isDecide (DecideDescription _ _) = true
 
 isDecide _ = false
+
+hasLabel :: InputDescription -> String -> Boolean
+hasLabel (InsertDescription _ s) s' = s == s'
+
+hasLabel (DecideDescription _ s) s' = s == s'
 
 isSelectedInputDescription :: Int -> InputDescription -> Boolean
 isSelectedInputDescription id (InsertDescription id' _) = id == id'
