@@ -246,7 +246,7 @@ renderTask (Select name task labels) inputDescriptions =
       _ ->
         HH.div [ css "select-task" ]
           [ renderTask task inputDescriptions
-          , HH.div [ css "buttons is-right pt-1" ] buttons
+          , HH.div [ css "buttons is-left pt-1" ] buttons
           ]
 
 renderTask (Pair t1 t2) inputDescriptions =
