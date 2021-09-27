@@ -13,7 +13,7 @@ module Component.TaskLoader (taskLoader) where
 
 import Prelude
 import App.Client (ApiError, TaskResponse(..), getInitialTask, interact, reset)
-import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), hasLabel, isDecide, selectInputDescription)
+import App.Task (Editor(..), Input(..), InputDescription(..), Name(..), Task(..), Value(..), isDecide, selectInputDescription)
 import Component.HTML.Bulma as Bulma
 import Component.HTML.Form as Form
 import Component.HTML.Utils (css)
@@ -157,7 +157,9 @@ renderError = HH.p_ [ HH.text "An error occurred :(" ]
 renderTaskWithInputs :: forall m. MonadAff m => Task -> Array InputDescription -> HH.ComponentHTML Action Slots m
 renderTaskWithInputs task inputDescriptions =
   HH.div_
-    [ renderTask task inputDescriptions, renderInputs inputDescriptions ]
+    [ renderTask task inputDescriptions
+    , renderActionButtons
+    ]
 
 -- Render user interface for each support task type. Takes a task and an array
 -- of InputDescription as arguments. The difference between the rendering of
@@ -286,10 +288,6 @@ renderEditorEnter id value = case value of
   (Int _) -> intInput id Nothing
   (Boolean _) -> booleanInput id Nothing
 
--- Function that renders buttons that do not belong to a Select task.
-renderInputs :: forall a. Array InputDescription -> HH.HTML a Action
-renderInputs inputDescriptions = HH.div [ css "buttons is-right" ] renderActionButtons
-
 -- Function that renders buttons that belong to a Select task.
 renderInput :: forall a. InputDescription -> HH.HTML a Action
 renderInput (DecideDescription id label) =
@@ -304,21 +302,22 @@ renderInput (DecideDescription id label) =
 renderInput _ = HH.div_ []
 
 -- Function that renders Reset and Log buttons.
-renderActionButtons :: forall a. Array (HH.HTML a Action)
+renderActionButtons :: forall a. HH.HTML a Action
 renderActionButtons =
-  [ HH.button
-      [ css "button is-danger is-outlined"
-      , HP.id "btn-reset"
-      , HE.onClick \_ -> Reset
-      ]
-      [ HH.text "Reset" ]
-  , HH.button
-      [ css "button is-link is-outlined"
-      , HP.id "btn-log"
-      , HE.onClick \_ -> LogState
-      ]
-      [ HH.text "Log state" ]
-  ]
+  HH.div [ css "buttons is-right navbar is-fixed-bottom pb-2 pr-1" ]
+    [ HH.button
+        [ css "button is-danger is-outlined"
+        , HP.id "btn-reset"
+        , HE.onClick \_ -> Reset
+        ]
+        [ HH.text "Reset" ]
+    , HH.button
+        [ css "button is-link is-outlined"
+        , HP.id "btn-log"
+        , HE.onClick \_ -> LogState
+        ]
+        [ HH.text "Log state" ]
+    ]
 
 -- Each form field is a child component that manages its owns state. An output
 -- event is only fired when the provided value is valid.
