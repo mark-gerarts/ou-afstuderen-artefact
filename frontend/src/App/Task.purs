@@ -28,12 +28,14 @@ data Task
   | Pair Task Task
   | Choose Task Task
   | Step Task
+  | Trans Task
   | Done
   | Fail
 
 instance showTask :: Show Task where
   show (Edit name editor) = "Edit [" <> show name <> "] [" <> show editor <> "]"
   show (Select name task _) = "Select [" <> show name <> "] [" <> show task <> "]"
+  show (Trans task) = "Trans [" <> show task <> "]"
   show (Pair t1 t2) = "Pair [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Choose t1 t2) = "Choose [" <> show t1 <> "] [" <> show t2 <> "]"
   show (Step t) = "Step [" <> show t <> "]"
@@ -65,6 +67,9 @@ instance decodeJsonTask :: DecodeJson Task where
       "step" -> do
         task <- obj .: "task"
         pure $ Step task
+      "trans" -> do
+        task <- obj .: "task"
+        pure $ Trans task
       "done" -> do
         pure Done
       "fail" -> do

@@ -266,6 +266,8 @@ renderTask (Choose t1 t2) inputDescriptions =
 
 renderTask (Step t) inputDescriptions = renderTask t inputDescriptions
 
+renderTask (Trans t) inputDescriptions = renderTask t inputDescriptions
+
 renderTask (Done) _ =
   Bulma.panel ("Done task")
     (HH.p_ [ HH.text $ show Done ])

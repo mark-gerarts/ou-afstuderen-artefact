@@ -102,6 +102,13 @@ taskToJSON (Step t _) = do
       [ "type" .= String "step",
         "task" .= t'
       ]
+taskToJSON (Trans _ t) = do
+  t' <- taskToJSON t
+  pure
+    <| object
+      [ "type" .= String "trans",
+        "task" .= t'
+      ]
 taskToJSON (Lift _) =
   pure
     <| object
