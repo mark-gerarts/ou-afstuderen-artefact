@@ -48,14 +48,10 @@ describe('view', () => {
         await expect(page).toHaveSelectorCount(buttonSelector('C'), 1);
     });
 
-    test('it should display only the continue button outside of the tasks', async () => {
+    test('it should display the continue button within the right task', async () => {
         // The continue button appears only after pressing C.
         await page.click(buttonSelector('C'));
-
-        // Test the continue button is rendered only once and in the bottom
-        // right.
         await expect(page).toHaveSelectorCount(buttonSelector('Continue'), 1);
-        await expect(page).toHaveSelector('xpath=//div[@class="buttons is-right"]/button[text()="Continue"]');
     });
 
     test('it should pass the correct input when clicking an option', async () => {
