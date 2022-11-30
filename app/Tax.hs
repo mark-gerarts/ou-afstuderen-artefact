@@ -2,7 +2,7 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Main where
+module Tax where
 
 import Task (enter, view, (>>?))
 import Task.Syntax (Task)
